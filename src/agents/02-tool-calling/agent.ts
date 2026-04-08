@@ -8,6 +8,7 @@
  */
 
 import { Agent } from "@mastra/core/agent";
+import "dotenv/config";
 import { timeTool } from "./tools/time-tool";
 
 /**
@@ -32,18 +33,24 @@ const instructions = `
 `;
 
 /**
+ * 获取默认模型
+ * 优先级：环境变量 > 默认值
+ */
+function getDefaultModel(): string {
+  return process.env.DEFAULT_MODEL || "openrouter/stepfun/step-3.5-flash";
+}
+
+/**
  * 创建带工具的 Agent
  */
-export function createToolAgent(
-  model: string = "openrouter/qwen/qwen3.6-plus"
-) {
+export function createToolAgent(model?: string) {
   return new Agent({
     id: "time-assistant",
     name: "Time Assistant",
     instructions,
-    model,
+    model: model || getDefaultModel(),
     tools: {
-      getCurrentTime: timeTool, // 使用对象形式注册工具
+      getCurrentTime: timeTool,
     },
   });
 }

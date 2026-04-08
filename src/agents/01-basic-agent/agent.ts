@@ -4,10 +4,11 @@
  * 核心概念：
  * - Agent = LLM + 指令模板
  * - 通过 instructions 给 Agent 定义角色和行为
- * - 模型格式: "provider/model-name" (如 "openrouter/qwen/qwen3.6-plus:free")
+ * - 模型格式: "provider/model-name"
  */
 
 import { Agent } from "@mastra/core/agent";
+import "dotenv/config";
 
 // Agent 的系统指令，定义 Agent 的角色和能力
 const instructions = `
@@ -16,20 +17,25 @@ const instructions = `
 `;
 
 /**
+ * 获取默认模型
+ * 优先级：环境变量 > 默认值
+ */
+function getDefaultModel(): string {
+  return process.env.DEFAULT_MODEL || "openrouter/stepfun/step-3.5-flash";
+}
+
+/**
  * 创建基础 Agent
  *
- * @param model - 模型名称，默认使用 Qwen 免费模型
- *                   格式: "provider/model-name"
+ * @param model - 模型名称，默认使用环境变量或 step-3.5-flash
  * @returns Agent 实例
  */
-export function createBasicAgent(
-  model: string = "openrouter/qwen/qwen3.6-plus"
-) {
+export function createBasicAgent(model?: string) {
   return new Agent({
     id: "basic-agent",
     name: "Basic Agent",
     instructions,
-    model, // 直接传入字符串，Mastra 自动解析
+    model: model || getDefaultModel(),
   });
 }
 

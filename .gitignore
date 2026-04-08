@@ -2,4 +2,10 @@ node_modules/
 dist/
 .DS_Store
 *.log
+
+# 本地环境配置（包含敏感信息）
 .env
+.env.local
+.env.production
+
+# 使用 .env.example 作为模板
