@@ -66,11 +66,4 @@ Vercel AI SDK 的 `tool()` 做三件事：
 npx tsx src/02-tool-system/index.ts
 ```
 
-## 下一步
 
-- [03-memory](../03-memory/) — 对话历史管理，让 Agent 有"记忆"
-- [04-long-term](../04-long-term/) — 长期记忆，用向量检索
-- [05-rag](../05-rag/) — 检索增强生成
-- [06-mcp](../06-mcp/) — MCP 协议，标准化工具接入
-- [07-multi-agent](../07-multi-agent/) — 多 Agent 协作
-- [08-evaluation](../08-evaluation/) — 评估框架
