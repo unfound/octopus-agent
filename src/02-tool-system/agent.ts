@@ -94,7 +94,7 @@ export async function agentChat(
         type: "tool-call",
         toolCallId: tc.toolCallId,
         toolName: tc.toolName,
-        args: tc.args,
+        input: tc.input,
       });
     }
 
@@ -111,7 +111,7 @@ export async function agentChat(
           {
             type: "tool-result",
             toolCallId: tr.toolCallId,
-            result: tr.result,
+            result: tr.output,
           },
         ]),
       } as any);

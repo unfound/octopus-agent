@@ -19,7 +19,7 @@ import { exec } from "child_process";
  */
 export const readFileTool = tool({
   description: "读取文件内容。可以指定最大行数。",
-  parameters: z.object({
+  inputSchema: z.object({
     path: z.string().describe("文件路径"),
     maxLines: z.number().optional().describe("最大读取行数"),
   }),
@@ -42,7 +42,7 @@ export const readFileTool = tool({
  */
 export const writeFileTool = tool({
   description: "写入内容到文件。自动创建不存在的目录。",
-  parameters: z.object({
+  inputSchema: z.object({
     path: z.string().describe("文件路径"),
     content: z.string().describe("要写入的内容"),
   }),
@@ -58,7 +58,7 @@ export const writeFileTool = tool({
  */
 export const execCommandTool = tool({
   description: "执行 shell 命令。返回 stdout、stderr 和退出码。",
-  parameters: z.object({
+  inputSchema: z.object({
     command: z.string().describe("shell 命令"),
     cwd: z.string().optional().describe("工作目录"),
   }),

@@ -6,6 +6,7 @@
  */
 
 import { createOpenAI } from "@ai-sdk/openai";
+import type { LanguageModel } from "ai";
 import "dotenv/config";
 
 /**
@@ -15,7 +16,7 @@ import "dotenv/config";
  * 支持 openrouter/xxx 格式（通过 OpenRouter 中转）
  * 支持直接 provider/model 格式
  */
-export function getModel(modelId?: string) {
+export function getModel(modelId?: string): LanguageModel {
   const id = modelId || process.env.DEFAULT_MODEL || "openrouter/stepfun/step-3.5-flash";
 
   // OpenRouter 模型：openrouter/provider/model
