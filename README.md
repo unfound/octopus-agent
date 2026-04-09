@@ -15,13 +15,14 @@
 | 章节 | 描述 | 状态 |
 |------|------|------|
 | [01-basic-agent](./src/01-basic-agent/) | 单轮对话 — `generateText()` 调用 LLM | ✅ |
-| [02-tool-system](./src/02-tool-system/) | 工具调用 — `tool()` + 自定义 ReAct 循环 | ✅ |
+|| [02-tool-system](./src/02-tool-system/) | 工具调用 — `tool()` + 自定义 ReAct 循环 | ✅ |
+|| [03-memory](./src/03-memory/) | 对话历史管理 + 上下文窗口策略 | ✅ |
 
-### 阶段二：记忆（规划中）
+### 阶段二：记忆
 
 | 章节 | 描述 | 状态 |
 |------|------|------|
-| 03-memory | 对话历史管理 + 上下文窗口 | ⬜ |
+| 03-memory | 对话历史管理 + 上下文窗口 | ✅ |
 | 04-long-term | 长期记忆 — 向量存储 + 语义检索 | ⬜ |
 
 ### 阶段三：RAG + MCP（规划中）
@@ -55,9 +56,11 @@
 octopus-agent/
 ├── src/
 │   ├── shared/              # 共享模块
-│   │   └── model.ts         # 模型配置（OpenRouter / 本地模型）
+│   │   ├── model.ts         # 模型配置（OpenRouter / 本地模型）
+│   │   └── message-store.ts # 消息存储 + token 估算
 │   ├── 01-basic-agent/      # 单轮对话
-│   └── 02-tool-system/      # 工具调用 + ReAct 循环
+│   ├── 02-tool-system/      # 工具调用 + ReAct 循环
+│   └── 03-memory/           # 记忆系统 + 上下文窗口
 ├── tests/                   # 测试
 ├── .env                     # API keys（不提交）
 └── package.json
@@ -92,6 +95,9 @@ npx tsx src/01-basic-agent/index.ts
 
 # 工具调用
 npx tsx src/02-tool-system/index.ts
+
+# 记忆系统
+npx tsx src/03-memory/index.ts
 ```
 
 ### 测试
