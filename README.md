@@ -1,64 +1,60 @@
 # 🐙 Octopus Agent
 
-> 基于 Mastra 的 TypeScript AI Agent 学习项目
+> 从零搭建 AI Agent — 基于 Vercel AI SDK 的 TypeScript 学习项目
 
 ## 📖 项目简介
 
-一个从零开始搭建的 AI Agent 系统，使用 [Mastra](https://mastra.ai/) 框架。目标：
+不依赖高层框架（Mastra、LangChain），用 **Vercel AI SDK** 做底层通信，自己实现 Agent 的核心机制。
 
-- **代码简洁**：易于阅读和理解，不追求花哨
-- **模块化**：各功能独立，可插拔
-- **渐进式**：从简单功能到完整系统
+目标：**每一步都理解代码在做什么。**
 
 ## 🛤️ 开发路线图
 
-### 阶段一：单 Agent 基础
+### 阶段一：基础
 
-| 项目 | 描述 | 核心概念 |
-|------|------|---------|
-| [01-basic-agent](./src/agents/01-basic-agent/) | 单轮对话 Agent | Agent、LLM 调用、指令模板 |
-| [02-tool-calling](./src/agents/02-tool-calling/) | 工具调用 | createTool、ReAct 模式 |
-| [03-state-management](./src/agents/03-state-management/) | 状态管理 | Memory、Session State |
+| 章节 | 描述 | 状态 |
+|------|------|------|
+| [01-basic-agent](./src/01-basic-agent/) | 单轮对话 — `generateText()` 调用 LLM | ✅ |
+| [02-tool-system](./src/02-tool-system/) | 工具调用 — `tool()` + 自定义 ReAct 循环 | ✅ |
 
-### 阶段二：记忆系统
+### 阶段二：记忆（规划中）
 
-| 项目 | 描述 | 核心概念 |
-|------|------|---------|
-| [04-short-term-memory](./src/memory/04-short-term-memory/) | 短期记忆 | 对话历史管理 |
-| [05-long-term-memory](./src/memory/05-long-term-memory/) | 长期记忆 | 向量存储、RAG |
-| [06-memory-router](./src/memory/06-memory-router/) | 记忆路由 | 根据问题类型选择策略 |
+| 章节 | 描述 | 状态 |
+|------|------|------|
+| 03-memory | 对话历史管理 + 上下文窗口 | ⬜ |
+| 04-long-term | 长期记忆 — 向量存储 + 语义检索 | ⬜ |
 
-### 阶段三：多 Agent 协作
+### 阶段三：RAG + MCP（规划中）
 
-| 项目 | 描述 | 核心概念 |
-|------|------|---------|
-| [07-multi-agent-supervisor](./src/agents/07-multi-agent-supervisor/) | Supervisor 模式 | 一个调度者管理多个 Agent |
-| [08-multi-agent-network](./src/agents/08-multi-agent-network/) | 网络模式 | 多个对等 Agent 协作 |
-| [09-agent-handoffs](./src/agents/09-agent-handoffs/) | Agent 交接 | 任务在不同 Agent 间传递 |
+| 章节 | 描述 | 状态 |
+|------|------|------|
+| 05-rag | 检索增强生成 — 文档切片 + embedding | ⬜ |
+| 06-mcp | MCP 协议 — 标准化工具/资源接入 | ⬜ |
 
-### 阶段四：生产增强
+### 阶段四：多 Agent（规划中）
 
-| 项目 | 描述 | 核心概念 |
-|------|------|---------|
-| [10-error-handling](./src/shared/10-error-handling/) | 错误处理 | 重试、降级、熔断 |
-| [11-observability](./src/shared/11-observability/) | 可观测性 | Tracing、日志、监控 |
-| [12-persistence](./src/shared/12-persistence/) | 持久化 | Checkpoint、Session 持久化 |
+| 章节 | 描述 | 状态 |
+|------|------|------|
+| 07-multi-agent | Agent 间通信 — supervisor / handoff | ⬜ |
+
+### 阶段五：生产增强（规划中）
+
+| 章节 | 描述 | 状态 |
+|------|------|------|
+| 08-evaluation | 评估框架 — 自动评分 + 回归测试 | ⬜ |
 
 ## 🏗️ 目录结构
 
 ```
-octopus-agent-mastra/
+octopus-agent/
 ├── src/
-│   ├── agents/              # Agent 相关
-│   │   ├── 01-basic-agent/
-│   │   ├── 02-tool-calling/
-│   │   └── 07-multi-agent-supervisor/
-│   ├── tools/               # 工具集
-│   ├── memory/              # 记忆系统
-│   ├── workflows/           # 工作流
-│   └── shared/             # 共享模块
-├── tests/                  # 测试
-└── README.md
+│   ├── shared/              # 共享模块
+│   │   └── model.ts         # 模型配置（OpenRouter / 本地模型）
+│   ├── 01-basic-agent/      # 单轮对话
+│   └── 02-tool-system/      # 工具调用 + ReAct 循环
+├── tests/                   # 测试
+├── .env                     # API keys（不提交）
+└── package.json
 ```
 
 ## 🚀 快速开始
@@ -66,36 +62,41 @@ octopus-agent-mastra/
 ### 环境要求
 
 - Node.js 20+
-- npm / pnpm / yarn / bun
 
-### 安装依赖
+### 安装
 
 ```bash
-cd octopus-agent-mastra
-npm install @mastra/core @mastra/runtime-openai zod
+cd octopus-agent
+npm install
+```
+
+### 配置
+
+复制 `.env.example` 为 `.env`，填入 API key：
+
+```bash
+cp .env.example .env
 ```
 
 ### 运行示例
 
 ```bash
-# 进入某个阶段
-cd src/agents/01-basic-agent
+# 单轮对话
+npx tsx src/01-basic-agent/index.ts
 
-# 运行
-npx tsx index.ts
+# 工具调用
+npx tsx src/02-tool-system/index.ts
+```
+
+### 测试
+
+```bash
+npm test
 ```
 
 ## 📚 技术栈
 
-- **框架**: Mastra v1+
+- **模型通信**: [Vercel AI SDK](https://sdk.vercel.ai/) (`ai` + `@ai-sdk/openai`)
+- **类型校验**: Zod
 - **语言**: TypeScript
-- **运行时**: Node.js 20+
-- **模型**: OpenRouter (支持免费模型)
-
-## 📝 笔记
-
-每个阶段都有自己的 README.md 详细说明实现细节和原理。
-
-## 🤝 贡献
-
-这是一个学习项目，欢迎提出建议和改进！
+- **测试**: Vitest
