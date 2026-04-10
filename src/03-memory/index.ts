@@ -36,7 +36,7 @@ async function demo1_basicMemory() {
   console.log("📊 历史统计:", agent.getStats());
 }
 
-async function demo2_windowStrategies() {
+async function _demo2_windowStrategies() {
   console.log("\n━━━ 场景 2：窗口策略对比 ━━━\n");
 
   // 滑动窗口 — 只保留最近 4 条
@@ -58,7 +58,7 @@ async function demo2_windowStrategies() {
   console.log("📊 统计:", agent2.getStats());
 }
 
-async function demo3_summaryCompression() {
+async function _demo3_summaryCompression() {
   console.log("\n━━━ 场景 3：摘要压缩 ━━━\n");
   console.log("（触发条件：超过 4 条消息，压缩旧消息，保留最近 2 条）\n");
 

@@ -9,7 +9,7 @@ export default tseslint.config(
       // 核心：禁止隐式 any
       "@typescript-eslint/no-explicit-any": "error",
       // 未使用的变量
-      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
+      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
 
     },
   },

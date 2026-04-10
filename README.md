@@ -15,8 +15,8 @@
 | 章节 | 描述 | 状态 |
 |------|------|------|
 | [01-basic-agent](./src/01-basic-agent/) | 单轮对话 — `generateText()` 调用 LLM | ✅ |
-|| [02-tool-system](./src/02-tool-system/) | 工具调用 — `tool()` + 自定义 ReAct 循环 | ✅ |
-|| [03-memory](./src/03-memory/) | 对话历史管理 + 上下文窗口策略 | ✅ |
+| [02-tool-system](./src/02-tool-system/) | 工具调用 — `tool()` + 自定义 ReAct 循环 | ✅ |
+| [03-memory](./src/03-memory/) | 对话历史管理 + 上下文窗口策略 | ✅ |
 
 ### 阶段二：记忆
 

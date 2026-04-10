@@ -13,7 +13,7 @@
 import type { ModelMessage } from "ai";
 import { generateText } from "ai";
 import { getModel } from "../shared/model";
-import { MessageStore, type StoredMessage } from "../shared/message-store";
+import { MessageStore } from "../shared/message-store";
 
 /** 窗口管理策略接口 */
 export interface WindowStrategy {

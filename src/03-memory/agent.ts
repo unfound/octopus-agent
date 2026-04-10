@@ -11,8 +11,7 @@
  * - 03 的 agent 维护对话历史（有状态），可以引用之前聊过的内容
  */
 
-import { generateText, tool } from "ai";
-import { z } from "zod";
+import { generateText, type ModelMessage, type ToolResultPart, type JSONValue } from "ai";
 import { getModel } from "../shared/model";
 import { MessageStore } from "../shared/message-store";
 import {
@@ -20,70 +19,12 @@ import {
   type WindowStrategy,
   slidingWindow,
 } from "./window";
+import { tools } from "../02-tool-system/tools";
 
 /** 系统提示词 */
 const SYSTEM_PROMPT = `你是一个有用的 AI 助手，名叫 Octopus。
 你可以使用工具来完成任务。
 回答要简洁。`;
-
-/** 内置工具定义 */
-const tools = {
-  read_file: tool({
-    description: "读取文件内容",
-    inputSchema: z.object({
-      path: z.string().describe("文件路径"),
-    }),
-    execute: async ({ path }) => {
-      const fs = await import("fs/promises");
-      try {
-        const content = await fs.readFile(path, "utf-8");
-        return { success: true, content };
-      } catch (e: any) {
-        return { success: false, error: e.message };
-      }
-    },
-  }),
-
-  write_file: tool({
-    description: "写入文件（覆盖）",
-    inputSchema: z.object({
-      path: z.string().describe("文件路径"),
-      content: z.string().describe("写入内容"),
-    }),
-    execute: async ({ path, content }) => {
-      const fs = await import("fs/promises");
-      try {
-        await fs.mkdir(
-          path.substring(0, path.lastIndexOf("/")) || ".",
-          { recursive: true },
-        );
-        await fs.writeFile(path, content, "utf-8");
-        return { success: true, message: `已写入 ${path}` };
-      } catch (e: any) {
-        return { success: false, error: e.message };
-      }
-    },
-  }),
-
-  exec: tool({
-    description: "执行 shell 命令",
-    inputSchema: z.object({
-      command: z.string().describe("要执行的命令"),
-    }),
-    execute: async ({ command }) => {
-      const { execSync } = await import("child_process");
-      try {
-        const output = execSync(command, {
-          encoding: "utf-8",
-          timeout: 10000,
-        });
-        return { success: true, output };
-      } catch (e: any) {
-        return { success: false, error: e.message };
-      }
-    },
-  }),
-};
 
 /**
  * 有状态的 Agent — 维护对话历史
@@ -134,7 +75,7 @@ export class Agent {
     const injectedMessages = await this.windowManager.apply();
 
     // 拼装完整消息列表：系统 + 注入(摘要等) + 历史
-    const messages = [
+    const messages: ModelMessage[] = [
       ...injectedMessages,
       ...this.store.getMessages(),
     ];
@@ -170,23 +111,23 @@ export class Agent {
       });
 
       for (const tc of result.toolCalls) {
-        // 执行工具（Vercel AI SDK 的 generateText 已经自动执行了，
-        // 这里我们直接获取结果）
         const toolResult = result.toolResults?.find(
           (tr) => tr.toolCallId === tc.toolCallId,
         );
 
+        const toolResultPart: ToolResultPart = {
+          type: "tool-result",
+          toolCallId: tc.toolCallId,
+          toolName: tc.toolName,
+          output: toolResult
+            ? { type: "json", value: toolResult.output as JSONValue }
+            : { type: "text", value: "工具执行完成" },
+        };
+
         messages.push({
           role: "tool",
-          content: [
-            {
-              type: "tool-result",
-              toolCallId: tc.toolCallId,
-              toolName: tc.toolName,
-              result: toolResult?.output ?? "工具执行完成",
-            },
-          ],
-        } as any);
+          content: [toolResultPart],
+        });
       }
     }
 
