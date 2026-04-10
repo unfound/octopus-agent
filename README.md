@@ -15,9 +15,12 @@
 | 01 | [basic-agent](./src/01-basic-agent/) | 单轮对话 — `generateText()` 调用 LLM | ✅ |
 | 02 | [tool-system](./src/02-tool-system/) | 工具调用 — `tool()` + 自定义 ReAct 循环 | ✅ |
 | 03 | [memory](./src/03-memory/) | 对话历史管理 + 上下文窗口策略 | ✅ |
-| 04 | rag | 检索增强生成 — 文档切片 + embedding + 相似度检索 | ⬜ |
-| 05 | mcp | MCP 协议 — 标准化工具/资源接入 | ⬜ |
-| 06 | multi-agent | Agent 间通信 — supervisor / handoff / network | ⬜ |
+| 04 | long-term | 长期记忆 — 向量存储 + 语义检索 | ⬜ |
+| 05 | rag | 检索增强生成 — 文档切片 + embedding + 相似度检索 | ⬜ |
+| 06 | mcp | MCP 协议 — 标准化工具/资源接入 | ⬜ |
+| 07 | skill | 可复用技能 — 技能发现、加载、执行、管理 | ⬜ |
+| 08 | multi-agent | Agent 间通信 — supervisor / handoff / network | ⬜ |
+| 09 | evaluation | 评估框架 — 自动评分 + 回归测试 | ⬜ |
 
 ## 🏗️ 目录结构
 
