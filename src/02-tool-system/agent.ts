@@ -21,7 +21,7 @@
  * 循环控制、消息管理全是我们自己的代码
  */
 
-import { generateText, type ToolCallPart } from "ai";
+import { generateText, type ModelMessage, type ToolCallPart, type ToolResultPart, type JSONValue } from "ai";
 import { getModel } from "../shared/model";
 import { tools } from "./tools";
 
@@ -43,7 +43,7 @@ export async function agentChat(
   const maxSteps = options?.maxSteps ?? 10;
 
   // 消息列表，手动管理
-  const messages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
+  const messages: ModelMessage[] = [
     {
       role: "system",
       content:
@@ -100,22 +100,22 @@ export async function agentChat(
 
     messages.push({
       role: "assistant",
-      content: JSON.stringify(assistantParts),
-    } as any);
+      content: assistantParts,
+    });
 
     // 把工具执行结果加入 messages
-    for (const tr of result.toolResults) {
-      messages.push({
-        role: "user" as const,
-        content: JSON.stringify([
-          {
-            type: "tool-result",
-            toolCallId: tr.toolCallId,
-            result: tr.output,
-          },
-        ]),
-      } as any);
-    }
+    // ToolResultPart 的 output 需要 { type: 'json', value: ... } 格式
+    const toolResultParts: ToolResultPart[] = result.toolResults.map((tr) => ({
+      type: "tool-result" as const,
+      toolCallId: tr.toolCallId,
+      toolName: tr.toolName,
+      output: { type: "json" as const, value: tr.output as JSONValue },
+    }));
+
+    messages.push({
+      role: "tool",
+      content: toolResultParts,
+    });
   }
 
   return "达到最大迭代次数，Agent 停止。";

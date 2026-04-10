@@ -13,6 +13,7 @@ import { z } from "zod";
 import { readFile, writeFile, mkdir } from "fs/promises";
 import { dirname } from "path";
 import { exec } from "child_process";
+import type { ExecException } from "child_process";
 
 /**
  * 读取文件
@@ -24,16 +25,23 @@ export const readFileTool = tool({
     maxLines: z.number().optional().describe("最大读取行数"),
   }),
   execute: async ({ path, maxLines }) => {
-    const content = await readFile(path, "utf-8");
-    if (maxLines) {
-      const lines = content.split("\n");
-      return {
-        content: lines.slice(0, maxLines).join("\n"),
-        totalLines: lines.length,
-        truncated: lines.length > maxLines,
-      };
+    try {
+      const content = await readFile(path, "utf-8");
+      if (maxLines) {
+        const lines = content.split("\n");
+        return {
+          content: lines.slice(0, maxLines).join("\n"),
+          totalLines: lines.length,
+          truncated: lines.length > maxLines,
+        };
+      }
+      return { content, totalLines: content.split("\n").length, truncated: false };
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if (code === "ENOENT") return { error: `文件不存在: ${path}` };
+      if (code === "EACCES") return { error: `无权限读取: ${path}` };
+      return { error: `读取失败: ${(err as Error).message}` };
     }
-    return { content, totalLines: content.split("\n").length, truncated: false };
   },
 });
 
@@ -69,7 +77,7 @@ export const execCommandTool = tool({
           success: !err,
           stdout: (stdout || "").slice(0, 5000),
           stderr: (stderr || "").slice(0, 5000),
-          exitCode: err ? (err as any).code ?? 1 : 0,
+          exitCode: err ? (err as ExecException).code ?? 1 : 0,
         });
       });
     });
