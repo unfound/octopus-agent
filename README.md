@@ -15,7 +15,7 @@
 | 01 | [basic-agent](./src/01-basic-agent/) | 单轮对话 — `generateText()` 调用 LLM | ✅ |
 | 02 | [tool-system](./src/02-tool-system/) | 工具调用 — `tool()` + 自定义 ReAct 循环 | ✅ |
 | 03 | [memory](./src/03-memory/) | 对话历史管理 + 上下文窗口策略 | ✅ |
-| 04 | long-term | 长期记忆 — 向量存储 + 语义检索 | ⬜ |
+| 04 | [long-term](./src/04-long-term/) | 长期记忆 — JSONL 持久化 + BM25 检索 | ✅ |
 | 05 | rag | 检索增强生成 — 文档切片 + embedding + 相似度检索 | ⬜ |
 | 06 | mcp | MCP 协议 — 标准化工具/资源接入 | ⬜ |
 | 07 | skill | 可复用技能 — 技能发现、加载、执行、管理 | ⬜ |
@@ -32,7 +32,8 @@ octopus-agent/
 │   │   └── message-store.ts # 消息存储 + token 估算
 │   ├── 01-basic-agent/      # 单轮对话
 │   ├── 02-tool-system/      # 工具调用 + ReAct 循环
-│   └── 03-memory/           # 记忆系统 + 上下文窗口
+│   ├── 03-memory/           # 记忆系统 + 上下文窗口
+│   └── 04-long-term/        # 长期记忆 + BM25 检索
 ├── tests/                   # 测试
 ├── .env                     # API keys（不提交）
 └── package.json

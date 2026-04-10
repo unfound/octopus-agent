@@ -19,6 +19,7 @@
     "@ai-sdk/openai": "^3.0.52",
     "ai": "^6.0.154",
     "dotenv": "^17.4.1",
+    "nodejieba": "^3.5.8",
     "zod": "^3.25.76"
   },
   "devDependencies": {
