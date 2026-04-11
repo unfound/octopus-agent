@@ -36,9 +36,11 @@ const SYSTEM_PROMPT = `你是一个有用的 AI 助手，名叫 Octopus。
 export class Agent {
   private store: MessageStore;
   private windowManager: WindowManager;
+  private model: ReturnType<typeof getModel>;
   private maxTurns: number;
 
   constructor(opts: {
+    model?: string;
     strategy?: WindowStrategy;
     maxTurns?: number;
     systemPrompt?: string;
@@ -49,6 +51,7 @@ export class Agent {
       opts.strategy ?? slidingWindow(20),
     );
     this.maxTurns = opts.maxTurns ?? 10;
+    this.model = getModel(opts.model);
 
     // 系统提示词作为第一条消息
     this.store.add({
@@ -80,7 +83,7 @@ export class Agent {
       ...this.store.getMessages(),
     ];
 
-    const model = getModel();
+    const model = this.model;
     let turnCount = 0;
 
     // ReAct 循环

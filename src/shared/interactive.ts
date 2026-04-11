@@ -28,7 +28,12 @@ export async function interactiveChat(
   const prompt = opts?.prompt ?? "你: ";
 
   while (true) {
-    const input = await rl.question(prompt);
+    let input: string;
+    try {
+      input = await rl.question(prompt);
+    } catch {
+      break; // stdin 关闭（管道输入结束）
+    }
 
     if (input.trim() === "/exit") break;
     if (input.trim() === "/clear") {

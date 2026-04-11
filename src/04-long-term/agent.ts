@@ -30,10 +30,12 @@ const SYSTEM_PROMPT = `你是一个有用的 AI 助手，名叫 Octopus。
 export class Agent {
   private store: MessageStore;
   private windowManager: WindowManager;
+  private model: ReturnType<typeof getModel>;
   private memoryManager: MemoryManager;
   private maxTurns: number;
 
   constructor(opts: {
+    model?: string;
     strategy?: WindowStrategy;
     maxTurns?: number;
     systemPrompt?: string;
@@ -45,11 +47,12 @@ export class Agent {
       opts.strategy ?? slidingWindow(20),
     );
     this.maxTurns = opts.maxTurns ?? 10;
+    this.model = getModel(opts.model);
 
     const memoryStore = new MemoryStore(
       opts.memoryFile ?? "./data/memories.jsonl",
     );
-    this.memoryManager = new MemoryManager(memoryStore);
+    this.memoryManager = new MemoryManager(memoryStore, this.model);
 
     // 系统提示词（长期记忆会在 send 时动态注入）
     this.store.add({
@@ -90,7 +93,7 @@ export class Agent {
     ];
 
     // ═══ 3. ReAct 循环 ═══
-    const model = getModel();
+    const model = this.model;
     let turnCount = 0;
     let finalText = "";
 

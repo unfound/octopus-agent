@@ -9,6 +9,8 @@
 import { agentChat } from "./agent";
 import { interactiveChat } from "../shared/interactive";
 
+const MODEL_ID = "local/qwen/qwen3.5-9b";
+
 const SYSTEM_PROMPT = `你是一个文件系统操作助手，具备以下能力：
 1. 读取文件（readFile）
 2. 写入文件（writeFile）
@@ -21,7 +23,7 @@ const SYSTEM_PROMPT = `你是一个文件系统操作助手，具备以下能力
 
 async function main() {
   await interactiveChat(
-    (msg) => agentChat(msg, { system: SYSTEM_PROMPT }),
+    (msg) => agentChat(msg, { model: MODEL_ID, system: SYSTEM_PROMPT }),
     {
       welcome: "🐙 02 - 工具调用 Agent\n   每次对话独立（无状态），支持文件读写和命令执行\n   /exit 退出\n",
     }

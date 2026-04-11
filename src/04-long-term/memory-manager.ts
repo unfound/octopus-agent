@@ -40,10 +40,12 @@ const extractedMemorySchema = z.object({
 export class MemoryManager {
   private store: MemoryStore;
   private bm25: BM25Index;
+  private model: ReturnType<typeof getModel>;
 
-  constructor(store: MemoryStore) {
+  constructor(store: MemoryStore, model?: ReturnType<typeof getModel>) {
     this.store = store;
     this.bm25 = new BM25Index();
+    this.model = model ?? getModel();
   }
 
   /** 初始化：从 store 加载所有记忆到 BM25 索引 */
@@ -66,7 +68,7 @@ export class MemoryManager {
     assistantReply: string,
   ): Promise<MemoryEntry[]> {
     const { object } = await generateObject({
-      model: getModel(),
+      model: this.model,
       schema: extractedMemorySchema,
       prompt: `分析以下对话，提取值得长期记住的信息。
 

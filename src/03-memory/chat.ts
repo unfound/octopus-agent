@@ -9,8 +9,10 @@
 import { Agent } from "./agent";
 import { interactiveChat } from "../shared/interactive";
 
+const MODEL_ID = "local/qwen/qwen3.5-9b";
+
 async function main() {
-  const agent = new Agent();
+  const agent = new Agent({ model: MODEL_ID });
 
   await interactiveChat(
     (msg) => agent.send(msg),

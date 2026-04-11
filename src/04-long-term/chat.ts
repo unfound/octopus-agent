@@ -9,10 +9,11 @@
 import { Agent } from "./agent";
 import { interactiveChat } from "../shared/interactive";
 
+const MODEL_ID = "local/qwen/qwen3.5-9b";
 const MEMORY_FILE = "/tmp/octopus-agent/memories.jsonl";
 
 async function main() {
-  const agent = new Agent({ memoryFile: MEMORY_FILE });
+  const agent = new Agent({ model: MODEL_ID, memoryFile: MEMORY_FILE });
   await agent.init();
 
   await interactiveChat(
