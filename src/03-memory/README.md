@@ -60,7 +60,11 @@ src/03-memory/
 ## 运行
 
 ```bash
+# 演示（预设场景）
 npx tsx src/03-memory/index.ts
+
+# 交互式对话
+npx tsx src/03-memory/chat.ts
 ```
 
 ## 关键概念

@@ -63,7 +63,11 @@ Vercel AI SDK 的 `tool()` 做三件事：
 ## 运行
 
 ```bash
+# 演示（预设场景）
 npx tsx src/02-tool-system/index.ts
+
+# 交互式对话
+npx tsx src/02-tool-system/chat.ts
 ```
 
 

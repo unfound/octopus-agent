@@ -29,8 +29,9 @@ octopus-agent/
 ├── src/
 │   ├── shared/              # 共享模块
 │   │   ├── model.ts         # 模型配置（OpenRouter / 本地模型）
-│   │   └── message-store.ts # 消息存储 + token 估算
-│   ├── 01-basic-agent/      # 单轮对话
+│   │   ├── message-store.ts # 消息存储 + token 估算
+│   │   └── interactive.ts   # 交互式对话循环（readline）
+│   ├── 01-basic-agent/      # 单轮 / 持续对话
 │   ├── 02-tool-system/      # 工具调用 + ReAct 循环
 │   ├── 03-memory/           # 记忆系统 + 上下文窗口
 │   └── 04-long-term/        # 长期记忆 + BM25 检索
@@ -69,11 +70,23 @@ npx tsx src/01-basic-agent/index.ts
 # 持续对话
 npx tsx src/01-basic-agent/chat.ts
 
-# 工具调用
+# 工具调用（演示）
 npx tsx src/02-tool-system/index.ts
 
-# 记忆系统
+# 工具调用（交互式）
+npx tsx src/02-tool-system/chat.ts
+
+# 记忆系统（演示）
 npx tsx src/03-memory/index.ts
+
+# 记忆系统（交互式）
+npx tsx src/03-memory/chat.ts
+
+# 长期记忆（演示）
+npx tsx src/04-long-term/index.ts
+
+# 长期记忆（交互式）
+npx tsx src/04-long-term/chat.ts
 ```
 
 ### 测试
