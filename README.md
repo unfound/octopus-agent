@@ -12,7 +12,7 @@
 
 | # | 章节 | 描述 | 状态 |
 |---|------|------|------|
-| 01 | [basic-agent](./src/01-basic-agent/) | 单轮对话 — `generateText()` 调用 LLM | ✅ |
+| 01 | [basic-agent](./src/01-basic-agent/) | 单轮 / 持续对话 — `generateText()` + 上下文累积 | ✅ |
 | 02 | [tool-system](./src/02-tool-system/) | 工具调用 — `tool()` + 自定义 ReAct 循环 | ✅ |
 | 03 | [memory](./src/03-memory/) | 对话历史管理 + 上下文窗口策略 | ✅ |
 | 04 | [long-term](./src/04-long-term/) | 长期记忆 — JSONL 持久化 + BM25 检索 | ✅ |
@@ -65,6 +65,9 @@ cp .env.example .env
 ```bash
 # 单轮对话
 npx tsx src/01-basic-agent/index.ts
+
+# 持续对话
+npx tsx src/01-basic-agent/chat.ts
 
 # 工具调用
 npx tsx src/02-tool-system/index.ts
