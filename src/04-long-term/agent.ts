@@ -77,7 +77,8 @@ export class Agent {
    */
   async send(userMessage: string): Promise<string> {
     // ═══ 1. 检索长期记忆 ═══
-    const recalled = this.memoryManager.recall(userMessage, 5);
+    // 先直接搜，搜不到就用 LLM 改写查询再搜
+    const recalled = await this.memoryManager.recallWithRewrite(userMessage, 5);
     if (recalled.length > 0) {
       const memoryContext = this.memoryManager.formatForPrompt(recalled);
       // 注入到系统提示词后面

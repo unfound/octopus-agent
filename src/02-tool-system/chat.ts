@@ -4,6 +4,13 @@
  * 每次对话独立（无状态），演示工具调用能力
  *
  * 运行方式：npx tsx src/02-tool-system/chat.ts
+ *
+ * 测试方式：
+ *   1. 输入「在 /tmp/test.txt 写入 hello」—— Agent 调用 writeFile，返回成功
+ *   2. 输入「读取 /tmp/test.txt」—— Agent 调用 readFile，返回文件内容
+ *   3. 输入「运行 ls /tmp 看看」—— Agent 调用 execCommand，返回目录列表
+ *   4. 输入「在 /tmp/a/b/c/d.txt 写入 deep」—— Agent 应该自动创建多层目录
+ *   5. /exit 退出
  */
 
 import { agentChat } from "./agent";

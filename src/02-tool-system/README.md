@@ -56,18 +56,21 @@ Vercel AI SDK 的 `tool()` 做三件事：
 02-tool-system/
 ├── agent.ts        # agentChat() — ReAct 循环
 ├── tools.ts        # 工具定义（readFile / writeFile / execCommand）
-├── index.ts        # 演示入口
+├── chat.ts         # 交互式对话入口
 └── README.md
 ```
 
 ## 运行
 
 ```bash
-# 演示（预设场景）
-npx tsx src/02-tool-system/index.ts
-
 # 交互式对话
 npx tsx src/02-tool-system/chat.ts
 ```
 
+## 测试方式
 
+1. 输入「在 /tmp/test.txt 写入 hello」—— Agent 调用 writeFile，返回成功
+2. 输入「读取 /tmp/test.txt」—— Agent 调用 readFile，返回文件内容
+3. 输入「运行 ls /tmp 看看」—— Agent 调用 execCommand，返回目录列表
+4. 输入「在 /tmp/a/b/c/d.txt 写入 deep」—— Agent 应该自动创建多层目录
+5. `/exit` 退出

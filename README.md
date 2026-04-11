@@ -10,17 +10,17 @@
 
 ## 🛤️ 章节
 
-| # | 章节 | 描述 | 状态 |
-|---|------|------|------|
-| 01 | [basic-agent](./src/01-basic-agent/) | 单轮 / 持续对话 — `generateText()` + 上下文累积 | ✅ |
-| 02 | [tool-system](./src/02-tool-system/) | 工具调用 — `tool()` + 自定义 ReAct 循环 | ✅ |
-| 03 | [memory](./src/03-memory/) | 对话历史管理 + 上下文窗口策略 | ✅ |
-| 04 | [long-term](./src/04-long-term/) | 长期记忆 — JSONL 持久化 + BM25 检索 | ✅ |
-| 05 | rag | 检索增强生成 — 文档切片 + embedding + 相似度检索 | ⬜ |
-| 06 | mcp | MCP 协议 — 标准化工具/资源接入 | ⬜ |
-| 07 | skill | 可复用技能 — 技能发现、加载、执行、管理 | ⬜ |
-| 08 | multi-agent | Agent 间通信 — supervisor / handoff / network | ⬜ |
-| 09 | evaluation | 评估框架 — 自动评分 + 回归测试 | ⬜ |
+| # | 章节 | 描述 | 运行方式 | 状态 |
+|---|------|------|----------|------|
+| 01 | [basic-agent](./src/01-basic-agent/) | 单轮 / 持续对话 | `npx tsx src/01-basic-agent/index.ts` (单轮) / `chat.ts` (多轮) | ✅ |
+| 02 | [tool-system](./src/02-tool-system/) | 工具调用 + ReAct 循环 | `npx tsx src/02-tool-system/chat.ts` | ✅ |
+| 03 | [memory](./src/03-memory/) | 对话历史 + 窗口策略 | `npx tsx src/03-memory/chat.ts` | ✅ |
+| 04 | [long-term](./src/04-long-term/) | 长期记忆 + BM25 检索 | `npx tsx src/04-long-term/chat.ts` | ✅ |
+| 05 | rag | 检索增强生成 — 文档切片 + embedding + 相似度检索 | — | ⬜ |
+| 06 | mcp | MCP 协议 — 标准化工具/资源接入 | — | ⬜ |
+| 07 | skill | 可复用技能 — 技能发现、加载、执行、管理 | — | ⬜ |
+| 08 | multi-agent | Agent 间通信 — supervisor / handoff / network | — | ⬜ |
+| 09 | evaluation | 评估框架 — 自动评分 + 回归测试 | — | ⬜ |
 
 ## 🏗️ 目录结构
 
@@ -35,7 +35,7 @@ octopus-agent/
 │   ├── 02-tool-system/      # 工具调用 + ReAct 循环
 │   ├── 03-memory/           # 记忆系统 + 上下文窗口
 │   └── 04-long-term/        # 长期记忆 + BM25 检索
-├── tests/                   # 测试
+├── tests/                   # 测试（含各章节集成测试）
 ├── .env                     # API keys（不提交）
 └── package.json
 ```
@@ -61,38 +61,34 @@ npm install
 cp .env.example .env
 ```
 
+默认使用本地模型（LM Studio @ 192.168.0.120:8888）。
+
 ### 运行示例
 
 ```bash
-# 单轮对话
+# 第一章：单轮对话
 npx tsx src/01-basic-agent/index.ts
 
-# 持续对话
+# 第一章：多轮对话（交互式）
 npx tsx src/01-basic-agent/chat.ts
 
-# 工具调用（演示）
-npx tsx src/02-tool-system/index.ts
-
-# 工具调用（交互式）
+# 第二章：工具调用（交互式，支持文件读写和命令执行）
 npx tsx src/02-tool-system/chat.ts
 
-# 记忆系统（演示）
-npx tsx src/03-memory/index.ts
-
-# 记忆系统（交互式）
+# 第三章：记忆系统（交互式，能记住上下文）
 npx tsx src/03-memory/chat.ts
 
-# 长期记忆（演示）
-npx tsx src/04-long-term/index.ts
-
-# 长期记忆（交互式）
+# 第四章：长期记忆（交互式，跨 session 持久化）
 npx tsx src/04-long-term/chat.ts
 ```
 
 ### 测试
 
 ```bash
-npm test
+npm test                      # 全部测试
+npx vitest run tests/02-agent-integration.test.ts  # 工具集成测试
+npx vitest run tests/03-memory.test.ts              # 记忆系统测试
+npx vitest run tests/04-long-term.test.ts           # 长期记忆测试
 ```
 
 ## 📚 技术栈

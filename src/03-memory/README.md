@@ -54,18 +54,24 @@ Agent.send(msg)
 src/03-memory/
 ├── window.ts    # 窗口策略（滑动/预算/摘要）
 ├── agent.ts     # 有状态的 Agent（ReAct + 记忆）
-└── index.ts     # 演示入口
+├── chat.ts      # 交互式对话入口
+└── README.md
 ```
 
 ## 运行
 
 ```bash
-# 演示（预设场景）
-npx tsx src/03-memory/index.ts
-
 # 交互式对话
 npx tsx src/03-memory/chat.ts
 ```
+
+## 测试方式
+
+1. 第一轮输入「我叫 Octopus，是个 TypeScript 开发者，喜欢猫」
+2. 第二轮输入「我的爱好是什么？」—— Agent 应该回答「喜欢猫」
+3. 连续发 5~6 条消息（随便输入什么），触发滑动窗口截断（keep 6）
+4. 再问「我叫什么？」—— 窗口只保留最近 6 条，早期消息被截断，Agent 会「忘记」
+5. `/exit` 退出
 
 ## 关键概念
 
@@ -87,7 +93,7 @@ type CoreMessage =
 - 中文：约 1.5 字/token
 - 英文：约 4 字/token
 
-生产环境建议用 `tiktok` 或模型自带的 tokenizer。
+生产环境建议用 `tiktoken` 或模型自带的 tokenizer。
 
 ### 摘要压缩流程
 
@@ -101,5 +107,4 @@ type CoreMessage =
 
 ## 下一步
 
-- **04-long-term** — 向量存储 + 语义检索（跨会话记忆）
-- **05-rag** — 检索增强生成
+- **04-long-term** — JSONL 持久化 + BM25 检索（跨会话记忆）

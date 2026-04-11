@@ -11,7 +11,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileTool, writeFileTool, execCommandTool } from "../src/02-tool-system/tools";
 
-const TEST_DIR = "/tmp/agent-test";
+const TEST_DIR = "/tmp/agent-test-tools";
 const TEST_FILE = `${TEST_DIR}/hello.txt`;
 
 describe("writeFile", () => {
@@ -66,10 +66,13 @@ describe("readFile", () => {
     expect(result.totalLines).toBe(3);
   });
 
-  it("should throw on non-existent file", async () => {
-    await expect(
-      readFileTool.execute({ path: "/tmp/no-such-file.txt" }, {} as any)
-    ).rejects.toThrow();
+  it("should return error on non-existent file", async () => {
+    const result = await readFileTool.execute(
+      { path: "/tmp/no-such-file.txt" },
+      {} as any,
+    );
+    expect(result).toHaveProperty("error");
+    expect(result.error).toContain("不存在");
   });
 });
 

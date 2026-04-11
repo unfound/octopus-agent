@@ -8,7 +8,7 @@
  * 核心差异：粒度更细、可检索、不浪费 token
  */
 
-import { generateObject } from "ai";
+import { generateText, generateObject } from "ai";
 import { z } from "zod";
 import { getModel } from "../shared/model";
 import { createMemoryEntry, type MemoryEntry, type MemoryCategory } from "./memory-entry";
@@ -127,6 +127,40 @@ export class MemoryManager {
         this.store.markAccessed(entry.id);
         return entry;
       });
+  }
+
+  /**
+   * 用 LLM 改写查询后再检索
+   *
+   * 解决 BM25 关键词匹配的局限：
+   * 用户问「我是谁」→ 改写为「用户的名字 身份 个人信息」→ 能匹配到「用户叫蛸蛸」
+   */
+  async recallWithRewrite(query: string, topK: number = 5): Promise<MemoryEntry[]> {
+    // 先直接搜一轮
+    const directResults = this.recall(query, topK);
+
+    // 如果已经有结果，不需要改写
+    if (directResults.length > 0) return directResults;
+
+    // 没结果 → 用 LLM 改写查询
+    try {
+      const { text: rewritten } = await generateText({
+        model: this.model,
+        prompt: `把下面的用户问题改写成适合关键词搜索的短语，用于在记忆库中检索相关信息。
+只输出搜索短语，不要解释。
+
+用户问题：${query}`,
+      });
+
+      const rewrittenQuery = rewritten.trim();
+      if (rewrittenQuery && rewrittenQuery !== query) {
+        return this.recall(rewrittenQuery, topK);
+      }
+    } catch {
+      // 改写失败就返回空
+    }
+
+    return [];
   }
 
   /** 格式化记忆为 prompt 片段 */
