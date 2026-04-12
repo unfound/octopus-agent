@@ -13,8 +13,7 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { tool } from "ai";
-import { z } from "zod";
+import { jsonSchema, tool } from "ai";
 import { isStdioConfig, isHttpConfig, type ServerConfig } from "./mcp-config.js";
 
 // ══════════════════════════════════════════
@@ -87,6 +86,9 @@ export async function connectToServer(name: string, config: ServerConfig): Promi
 
 /**
  * 把 MCP 工具列表转成 AI SDK tools
+ *
+ * MCP Server 返回 JSON Schema，AI SDK 的 jsonSchema() 可以直接使用。
+ * 不需要 JSON Schema → Zod → JSON Schema 的来回转换。
  */
 export function convertToAiTools(
   client: Client,
@@ -95,11 +97,17 @@ export function convertToAiTools(
   const aiTools: Record<string, ReturnType<typeof tool>> = {};
 
   for (const t of serverTools) {
-    const zodSchema = jsonSchemaToZod(t.inputSchema as Record<string, unknown>);
+    // 清理 MCP 返回的 schema，移除 $schema 等额外字段
+    const schema = t.inputSchema as Record<string, unknown>;
+    const cleanSchema = {
+      type: schema.type ?? "object",
+      properties: schema.properties ?? {},
+      ...(schema.required ? { required: schema.required } : {}),
+    };
 
     aiTools[t.name] = tool({
       description: t.description ?? "",
-      parameters: zodSchema,
+      inputSchema: jsonSchema(cleanSchema),
       execute: async (args) => {
         const result = await client.callTool({
           name: t.name,
@@ -116,37 +124,4 @@ export function convertToAiTools(
   return aiTools;
 }
 
-// ══════════════════════════════════════════
-// JSON Schema → Zod 转换
-// ══════════════════════════════════════════
 
-function jsonSchemaToZod(schema: Record<string, unknown>): z.ZodType {
-  if (schema.type !== "object" || !schema.properties) {
-    return z.object({}).passthrough();
-  }
-
-  const shape: Record<string, z.ZodType> = {};
-  const required = (schema.required as string[]) || [];
-
-  for (const [key, prop] of Object.entries(schema.properties as Record<string, Record<string, unknown>>)) {
-    let zodType: z.ZodType;
-
-    switch (prop.type) {
-      case "string": zodType = z.string(); break;
-      case "number": zodType = z.number(); break;
-      case "boolean": zodType = z.boolean(); break;
-      case "integer": zodType = z.number().int(); break;
-      default: zodType = z.any();
-    }
-
-    if (prop.description) zodType = zodType.describe(prop.description as string);
-    if (!required.includes(key)) {
-      zodType = zodType.optional();
-      if (prop.default !== undefined) zodType = zodType.default(prop.default);
-    }
-
-    shape[key] = zodType;
-  }
-
-  return z.object(shape);
-}

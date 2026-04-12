@@ -5,6 +5,7 @@
  *   1. 从配置文件声明 MCP Servers
  *   2. 动态加载所有 servers 的 tools
  *   3. Agent 只接收 tools，不关心来源
+ *   4. 集成 hooks 日志，方便调试
  *
  * 运行方式：npx tsx src/06-mcp/chat.ts [配置文件路径]
  *
@@ -18,6 +19,7 @@ import { fileURLToPath } from "node:url";
 import { generateText, type ModelMessage, type ToolCallPart, type ToolResultPart, type JSONValue } from "ai";
 import { getModel } from "../shared/model";
 import { loadFromConfig } from "./mcp-loader.js";
+import { createFileLogHooks, type AgentHooks, type LLMCallRecord, countRoles } from "../shared/hooks";
 
 const MODEL_ID = "local/qwen/qwen3.5-9b";
 
@@ -40,12 +42,20 @@ async function main() {
   const { tools, close } = await loadFromConfig(configPath);
 
   // ══════════════════════════════════════════
-  // 2. 交互循环
+  // 2. 初始化 hooks（调试日志）
+  // ══════════════════════════════════════════
+  const { logFile, ...hooks } = createFileLogHooks({ prefix: "mcp", console: true });
+
+  // ══════════════════════════════════════════
+  // 3. 交互循环
   // ══════════════════════════════════════════
   const rl = readline.createInterface({ input: stdin, output: stdout });
   console.log("\n🐙 06 - MCP Agent 启动！");
   console.log("   MCP Servers 通过配置文件声明，Agent 动态加载");
+  console.log(`   日志文件: ${logFile}`);
   console.log("   /exit 退出\n");
+
+  let callCounter = 0;
 
   try {
     while (true) {
@@ -65,11 +75,53 @@ async function main() {
       ];
 
       for (let step = 0; step < 10; step++) {
+        callCounter++;
+
+        // Hooks: onLLMStart
+        const requestRecord = {
+          callIndex: callCounter,
+          timestamp: new Date().toISOString(),
+          agentName: "mcp-chat",
+          request: {
+            messages: [...messages],
+            messageCount: messages.length,
+            roleStats: countRoles(messages),
+          },
+        };
+        hooks.onLLMStart?.(requestRecord);
+
+        const startTime = Date.now();
         const result = await generateText({
           model: getModel(MODEL_ID),
           messages,
           tools,
         });
+        const durationMs = Date.now() - startTime;
+
+        // Hooks: onLLMEnd
+        const fullRecord: LLMCallRecord = {
+          ...requestRecord,
+          response: {
+            text: result.text,
+            toolCalls: (result.toolCalls ?? []).map(tc => ({
+              toolName: tc.toolName,
+              args: tc.input,
+            })),
+            toolResults: (result.toolResults ?? []).map(tr => ({
+              toolName: tr.toolName,
+              result: tr.output,
+            })),
+            usage: {
+              inputTokens: result.usage.inputTokens ?? 0,
+              outputTokens: result.usage.outputTokens ?? 0,
+              totalTokens: result.usage.totalTokens ?? 0,
+              reasoningTokens: result.usage.reasoningTokens,
+            },
+            finishReason: result.finishReason ?? "unknown",
+            durationMs,
+          },
+        };
+        hooks.onLLMEnd?.(fullRecord);
 
         if (!result.toolCalls || result.toolCalls.length === 0) {
           console.log(`🐙: ${result.text}\n`);
@@ -86,21 +138,26 @@ async function main() {
             toolName: tc.toolName,
             input: tc.input,
           });
+          hooks.onToolCall?.(tc.toolName, tc.input);
         }
         messages.push({ role: "assistant", content: assistantParts });
 
-        const toolResultParts: ToolResultPart[] = result.toolResults.map((tr) => ({
-          type: "tool-result" as const,
-          toolCallId: tr.toolCallId,
-          toolName: tr.toolName,
-          output: { type: "json" as const, value: tr.output as JSONValue },
-        }));
+        const toolResultParts: ToolResultPart[] = result.toolResults.map((tr) => {
+          hooks.onToolResult?.(tr.toolName, tr.output);
+          return {
+            type: "tool-result" as const,
+            toolCallId: tr.toolCallId,
+            toolName: tr.toolName,
+            output: { type: "json" as const, value: tr.output as JSONValue },
+          };
+        });
         messages.push({ role: "tool", content: toolResultParts });
       }
     }
   } finally {
     rl.close();
     await close();
+    console.log(`📁 日志: ${logFile}`);
     console.log("👋 再见！");
   }
 }
