@@ -33,7 +33,7 @@ import {
 } from "../03-memory/window";
 import { tools as baseTools } from "../02-tool-system/tools";
 import { scanSkills, formatSkillsForPrompt, type Skill } from "./skill";
-import { type AgentHooks, type LLMCallRecord, countRoles } from "./hooks";
+import { type AgentHooks, type LLMCallRecord, countRoles } from "../shared/hooks";
 
 /** 基础系统提示词 */
 const BASE_SYSTEM_PROMPT = `你是一个有用的 AI 助手。

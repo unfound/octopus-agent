@@ -17,7 +17,7 @@
 
 import { Agent } from "./agent";
 import { interactiveChat } from "../shared/interactive";
-import { createFileLogHooks } from "./hooks";
+import { createFileLogHooks } from "../shared/hooks";
 
 const MODEL_ID = "local/qwen/qwen3.5-9b";
 const SKILLS_DIR = new URL("./skills", import.meta.url).pathname;
