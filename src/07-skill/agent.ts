@@ -99,10 +99,6 @@ export class Agent {
     this.store.add({ role: "user", content: userMessage });
 
     const injectedMessages = await this.windowManager.apply();
-    const messages: ModelMessage[] = [
-      ...injectedMessages,
-      ...this.store.getMessages(),
-    ];
 
     // 合并基础工具 + skillView 工具
     const allTools = {
@@ -115,6 +111,12 @@ export class Agent {
 
     while (turnCount < this.maxTurns) {
       turnCount++;
+
+      // 每次循环重新构建 messages（skillView 可能会添加新消息到 store）
+      const messages: ModelMessage[] = [
+        ...injectedMessages,
+        ...this.store.getMessages(),
+      ];
       this.callCounter++;
 
       // 准备请求记录
@@ -175,8 +177,8 @@ export class Agent {
         return finalText;
       }
 
-      // 有工具调用
-      messages.push({
+      // 有工具调用 - 把 assistant 回复和 tool 结果存入 store
+      this.store.add({
         role: "assistant",
         content: result.text || "",
       });
@@ -197,7 +199,7 @@ export class Agent {
             ? { type: "json", value: toolResult.output as JSONValue }
             : { type: "text", value: "工具执行完成" },
         };
-        messages.push({ role: "tool", content: [toolResultPart] });
+        this.store.add({ role: "tool", content: [toolResultPart] });
 
         // 触发 onToolResult hook
         if (toolResult) {
