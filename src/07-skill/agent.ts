@@ -149,7 +149,7 @@ export class Agent {
           text: result.text,
           toolCalls: (result.toolCalls ?? []).map(tc => ({
             toolName: tc.toolName,
-            args: tc.args,
+            args: tc.input,
           })),
           toolResults: (result.toolResults ?? []).map(tr => ({
             toolName: tr.toolName,
@@ -187,7 +187,7 @@ export class Agent {
         );
 
         // 触发 onToolCall hook
-        this.hooks?.onToolCall?.(tc.toolName, tc.args);
+        this.hooks?.onToolCall?.(tc.toolName, tc.input);
 
         const toolResultPart: ToolResultPart = {
           type: "tool-result",

@@ -60,8 +60,8 @@ export interface AgentHooks {
 export interface LogConfig {
   /** 日志目录 */
   logDir: string;
-  /** 日志文件名（不含扩展名，默认自动生成时间戳） */
-  filename: string;
+  /** 日志文件名前缀（最终文件名 = prefix + 时间戳） */
+  prefix: string;
   /** 是否输出到控制台 */
   console: boolean;
 }
@@ -70,20 +70,21 @@ export interface LogConfig {
  * 创建文件日志 hooks
  *
  * 把整个会话的 LLM 调用记录到单个 JSON 文件
- * 适合调试：一次会话一个文件，结构清晰
+ * 每次调用自动生成唯一文件名（prefix + 时间戳）
  */
-export function createFileLogHooks(config: Partial<LogConfig> = {}): AgentHooks & { flush: () => void } {
+export function createFileLogHooks(config: Partial<LogConfig> = {}): AgentHooks & { logFile: string } {
   const logDir = config.logDir ?? join(process.cwd(), "logs");
   const toConsole = config.console ?? false;
+  const prefix = config.prefix ?? "agent";
 
   // 确保日志目录存在
   if (!existsSync(logDir)) {
     mkdirSync(logDir, { recursive: true });
   }
 
+  // 生成唯一文件名：prefix-时间戳.json
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const filename = config.filename ?? timestamp;
-  const logFile = join(logDir, `${filename}.json`);
+  const logFile = join(logDir, `${prefix}-${timestamp}.json`);
 
   const records: LLMCallRecord[] = [];
 
@@ -92,7 +93,7 @@ export function createFileLogHooks(config: Partial<LogConfig> = {}): AgentHooks 
   }
 
   return {
-    flush,
+    logFile,
 
     onLLMStart(record) {
       if (toConsole) {
