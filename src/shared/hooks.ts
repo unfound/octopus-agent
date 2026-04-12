@@ -10,7 +10,7 @@
 
 import { writeFileSync, mkdirSync, existsSync } from "fs";
 import { join } from "path";
-import type { ModelMessage, ToolSet } from "ai";
+import type { ModelMessage } from "ai";
 
 /** 单次 LLM 调用的完整记录 */
 export interface LLMCallRecord {

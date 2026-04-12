@@ -19,7 +19,7 @@ import { fileURLToPath } from "node:url";
 import { generateText, type ModelMessage, type ToolCallPart, type ToolResultPart, type JSONValue } from "ai";
 import { getModel } from "../shared/model";
 import { loadFromConfig } from "./mcp-loader.js";
-import { createFileLogHooks, type AgentHooks, type LLMCallRecord, countRoles } from "../shared/hooks";
+import { createFileLogHooks, type LLMCallRecord, countRoles } from "../shared/hooks";
 
 const MODEL_ID = "local/qwen/qwen3.5-9b";
 
@@ -44,7 +44,7 @@ async function main() {
   // ══════════════════════════════════════════
   // 2. 初始化 hooks（调试日志）
   // ══════════════════════════════════════════
-  const { logFile, ...hooks } = createFileLogHooks({ prefix: "mcp", console: true });
+  const { logFile, ...hooks } = createFileLogHooks({ prefix: "mcp"});
 
   // ══════════════════════════════════════════
   // 3. 交互循环

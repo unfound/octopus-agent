@@ -12,7 +12,6 @@
 
 import { loadConfig, type McpConfig, type ServerConfig } from "./mcp-config.js";
 import { connectToServer, convertToAiTools, type McpConnection } from "./mcp-client.js";
-import { tool } from "ai";
 
 // ══════════════════════════════════════════
 // 类型
@@ -20,7 +19,8 @@ import { tool } from "ai";
 
 export interface LoadedMcpServers {
   /** 合并后的 AI SDK tools */
-  tools: Record<string, ReturnType<typeof tool>>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  tools: Record<string, any>;
   /** 所有连接（用于调试） */
   connections: McpConnection[];
   /** 关闭所有连接 */
@@ -47,7 +47,8 @@ export async function loadFromConfig(configPath: string): Promise<LoadedMcpServe
  */
 export async function loadFromObject(config: McpConfig): Promise<LoadedMcpServers> {
   const connections: McpConnection[] = [];
-  const allTools: Record<string, ReturnType<typeof tool>> = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const allTools: Record<string, any> = {};
 
   console.log(`\n🔌 加载 MCP Servers (共 ${Object.keys(config.mcpServers).length} 个)...\n`);
 
