@@ -9,3 +9,4 @@ dist/
 .env.production
 
 # 使用 .env.example 作为模板
+logs/

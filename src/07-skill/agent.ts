@@ -33,6 +33,7 @@ import {
 } from "../03-memory/window";
 import { tools as baseTools } from "../02-tool-system/tools";
 import { scanSkills, formatSkillsForPrompt, type Skill } from "./skill";
+import { type AgentHooks, type LLMCallRecord, countRoles } from "./hooks";
 
 /** 基础系统提示词 */
 const BASE_SYSTEM_PROMPT = `你是一个有用的 AI 助手。
@@ -47,6 +48,9 @@ export class Agent {
   private maxTurns: number;
   private skills: Skill[];
   private loadedSkills: Set<string> = new Set();
+  private hooks?: AgentHooks;
+  private callCounter: number = 0;
+  private name: string;
 
   constructor(
     opts: {
@@ -55,6 +59,8 @@ export class Agent {
       maxTurns?: number;
       systemPrompt?: string;
       skillsDir?: string;
+      hooks?: AgentHooks;
+      name?: string;
     } = {},
   ) {
     this.store = new MessageStore();
@@ -64,6 +70,8 @@ export class Agent {
     );
     this.maxTurns = opts.maxTurns ?? 10;
     this.model = getModel(opts.model);
+    this.hooks = opts.hooks;
+    this.name = opts.name ?? "agent";
 
     // 扫描技能
     const skillsDir = opts.skillsDir ?? new URL("./skills", import.meta.url).pathname;
@@ -107,11 +115,59 @@ export class Agent {
 
     while (turnCount < this.maxTurns) {
       turnCount++;
+      this.callCounter++;
+
+      // 准备请求记录
+      const callIndex = this.callCounter;
+      const timestamp = new Date().toISOString();
+      const requestRecord = {
+        callIndex,
+        timestamp,
+        agentName: this.name,
+        request: {
+          messages: [...messages],
+          messageCount: messages.length,
+          roleStats: countRoles(messages),
+        },
+      };
+
+      // 触发 onLLMStart hook
+      this.hooks?.onLLMStart?.(requestRecord);
+
+      const startTime = Date.now();
       const result = await generateText({
         model: this.model,
         messages,
         tools: allTools,
       });
+      const durationMs = Date.now() - startTime;
+
+      // 准备完整记录
+      const fullRecord: LLMCallRecord = {
+        ...requestRecord,
+        response: {
+          text: result.text,
+          toolCalls: (result.toolCalls ?? []).map(tc => ({
+            toolName: tc.toolName,
+            args: tc.args,
+          })),
+          toolResults: (result.toolResults ?? []).map(tr => ({
+            toolName: tr.toolName,
+            result: tr.output,
+          })),
+          usage: {
+            promptTokens: result.usage.promptTokens ?? 0,
+            completionTokens: result.usage.completionTokens ?? 0,
+            totalTokens: result.usage.totalTokens ?? 0,
+            reasoningTokens: (result.usage as { reasoningTokens?: number }).reasoningTokens,
+          },
+          finishReason: result.finishReason ?? "unknown",
+          durationMs,
+        },
+      };
+
+      // 触发 onLLMEnd hook
+      this.hooks?.onLLMEnd?.(fullRecord);
 
       if (!result.toolCalls || result.toolCalls.length === 0) {
         finalText = result.text;
@@ -129,6 +185,10 @@ export class Agent {
         const toolResult = result.toolResults?.find(
           (tr) => tr.toolCallId === tc.toolCallId,
         );
+
+        // 触发 onToolCall hook
+        this.hooks?.onToolCall?.(tc.toolName, tc.args);
+
         const toolResultPart: ToolResultPart = {
           type: "tool-result",
           toolCallId: tc.toolCallId,
@@ -138,6 +198,11 @@ export class Agent {
             : { type: "text", value: "工具执行完成" },
         };
         messages.push({ role: "tool", content: [toolResultPart] });
+
+        // 触发 onToolResult hook
+        if (toolResult) {
+          this.hooks?.onToolResult?.(tc.toolName, toolResult.output);
+        }
       }
 
       finalText = result.text;

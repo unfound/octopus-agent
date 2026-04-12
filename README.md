@@ -18,7 +18,7 @@
 | 04 | [long-term](./src/04-long-term/) | 长期记忆 + BM25 检索 | `npx tsx src/04-long-term/chat.ts` | ✅ |
 | 05 | rag | 检索增强生成 — 文档切片 + embedding + 相似度检索 | — | ⬜ |
 | 06 | mcp | MCP 协议 — 标准化工具/资源接入 | — | ⬜ |
-| 07 | skill | 可复用技能 — 技能发现、加载、执行、管理 | — | ⬜ |
+| 07 | [skill](./src/07-skill/) | 可复用技能 — 技能发现、加载、执行 | `npx tsx src/07-skill/chat.ts` | ✅ |
 | 08 | multi-agent | Agent 间通信 — supervisor / handoff / network | — | ⬜ |
 | 09 | evaluation | 评估框架 — 自动评分 + 回归测试 | — | ⬜ |
 
@@ -34,7 +34,8 @@ octopus-agent/
 │   ├── 01-basic-agent/      # 单轮 / 持续对话
 │   ├── 02-tool-system/      # 工具调用 + ReAct 循环
 │   ├── 03-memory/           # 记忆系统 + 上下文窗口
-│   └── 04-long-term/        # 长期记忆 + BM25 检索
+│   ├── 04-long-term/        # 长期记忆 + BM25 检索
+│   └── 07-skill/            # 可复用技能系统
 ├── tests/                   # 测试（含各章节集成测试）
 ├── .env                     # API keys（不提交）
 └── package.json
@@ -80,6 +81,9 @@ npx tsx src/03-memory/chat.ts
 
 # 第四章：长期记忆（交互式，跨 session 持久化）
 npx tsx src/04-long-term/chat.ts
+
+# 第七章：可复用技能（交互式，自动发现和加载技能）
+npx tsx src/07-skill/chat.ts
 ```
 
 ### 测试

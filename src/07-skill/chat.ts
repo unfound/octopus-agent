@@ -17,12 +17,24 @@
 
 import { Agent } from "./agent";
 import { interactiveChat } from "../shared/interactive";
+import { createFileLogHooks } from "./hooks";
 
 const MODEL_ID = "local/qwen/qwen3.5-9b";
 const SKILLS_DIR = new URL("./skills", import.meta.url).pathname;
 
 async function main() {
-  const agent = new Agent({ model: MODEL_ID, skillsDir: SKILLS_DIR });
+  // 启用文件日志（同时输出到控制台）
+  const hooks = createFileLogHooks({
+    prefix: "07-skill",
+    console: true,
+  });
+
+  const agent = new Agent({
+    model: MODEL_ID,
+    skillsDir: SKILLS_DIR,
+    hooks,
+    name: "skill-agent",
+  });
 
   const stats = agent.getStats();
   console.log(`📦 已加载 ${stats.skills.length} 个技能: ${stats.skills.join(", ")}\n`);
