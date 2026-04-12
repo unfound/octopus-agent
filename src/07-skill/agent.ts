@@ -223,7 +223,7 @@ export class Agent {
     const skills = this.skills;
 
     return tool({
-      description: "查看技能的完整指令。当用户的任务匹配某个技能时调用。",
+      description: "加载技能的完整指令。当用户的任务匹配某个技能时调用。",
       inputSchema: z.object({
         name: z.string().describe("技能名称，如 git-commit、code-review"),
       }),
@@ -243,18 +243,21 @@ export class Agent {
             success: true,
             name: skill.name,
             alreadyLoaded: true,
-            message: `技能 "${name}" 已经加载过了，请直接按照之前的指令执行。`,
+            message: `技能 "${name}" 已经加载过了，请直接按照指令执行。`,
           };
         }
 
         this.loadedSkills.add(name);
 
-        // 直接返回技能内容，不注入 system 消息
+        // 注入 system 消息（模型更容易当作指令遵循）
+        const skillContent = `[Skill: ${skill.name}]\n\n${skill.body}`;
+        this.store.add({ role: "system", content: skillContent });
+
         return {
           success: true,
           name: skill.name,
           alreadyLoaded: false,
-          body: skill.body,
+          message: `技能 "${skill.name}" 已加载，指令已注入上下文。请按照指令执行任务。`,
         };
       },
     });
