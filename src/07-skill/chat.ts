@@ -23,10 +23,9 @@ const MODEL_ID = "local/qwen/qwen3.5-9b";
 const SKILLS_DIR = new URL("./skills", import.meta.url).pathname;
 
 async function main() {
-  // 启用文件日志（同时输出到控制台）
+  // 启用文件日志（默认不输出到控制台）
   const hooks = createFileLogHooks({
-    prefix: "07-skill",
-    console: true,
+    filename: "07-skill-debug",
   });
 
   const agent = new Agent({

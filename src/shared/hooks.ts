@@ -60,22 +60,21 @@ export interface AgentHooks {
 export interface LogConfig {
   /** 日志目录 */
   logDir: string;
-  /** 日志文件名前缀 */
-  prefix: string;
-  /** 是否同时输出到控制台 */
+  /** 日志文件名（不含扩展名，默认自动生成时间戳） */
+  filename: string;
+  /** 是否输出到控制台 */
   console: boolean;
 }
 
 /**
  * 创建文件日志 hooks
  *
- * 把每次 LLM 调用记录到 NDJSON 文件（每行一个 JSON）
- * 方便用 jq 或直接 tail -f 查看
+ * 把整个会话的 LLM 调用记录到单个 JSON 文件
+ * 适合调试：一次会话一个文件，结构清晰
  */
-export function createFileLogHooks(config: Partial<LogConfig> = {}): AgentHooks {
+export function createFileLogHooks(config: Partial<LogConfig> = {}): AgentHooks & { flush: () => void } {
   const logDir = config.logDir ?? join(process.cwd(), "logs");
-  const prefix = config.prefix ?? "agent";
-  const toConsole = config.console ?? true;
+  const toConsole = config.console ?? false;
 
   // 确保日志目录存在
   if (!existsSync(logDir)) {
@@ -83,48 +82,50 @@ export function createFileLogHooks(config: Partial<LogConfig> = {}): AgentHooks 
   }
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const logFile = join(logDir, `${prefix}-${timestamp}.ndjson`);
+  const filename = config.filename ?? timestamp;
+  const logFile = join(logDir, `${filename}.json`);
 
-  function writeLog(record: LLMCallRecord) {
-    const line = JSON.stringify(record, null, 0);
-    writeFileSync(logFile, line + "\n", { flag: "a" });
+  const records: LLMCallRecord[] = [];
 
-    if (toConsole) {
-      console.log(`\n${"═".repeat(60)}`);
-      console.log(`📞 LLM Call #${record.callIndex} [${record.timestamp}]`);
-      console.log(`${"═".repeat(60)}`);
-      console.log(`📤 Request: ${record.request.messageCount} messages`);
-      for (const msg of record.request.messages) {
-        const preview = typeof msg.content === "string"
-          ? msg.content.slice(0, 100)
-          : JSON.stringify(msg.content).slice(0, 100);
-        console.log(`   [${msg.role}] ${preview}${preview.length >= 100 ? "..." : ""}`);
-      }
-      console.log(`📥 Response (${record.response.durationMs}ms):`);
-      if (record.response.text) {
-        console.log(`   text: ${record.response.text.slice(0, 200)}`);
-      }
-      if (record.response.toolCalls.length > 0) {
-        console.log(`   tools: ${record.response.toolCalls.map(t => t.toolName).join(", ")}`);
-      }
-      console.log(`   usage: ${record.response.usage.totalTokens} tokens`);
-      console.log(`   finish: ${record.response.finishReason}`);
-      console.log(`📁 Log: ${logFile}\n`);
-    }
+  function flush() {
+    writeFileSync(logFile, JSON.stringify(records, null, 2));
   }
 
-  let callIndex = 0;
-
   return {
+    flush,
+
     onLLMStart(record) {
-      // 只记录请求信息，响应在 onLLMEnd 时写入
       if (toConsole) {
         console.log(`\n⏳ LLM Call #${record.callIndex} started...`);
       }
     },
 
     onLLMEnd(record) {
-      writeLog(record);
+      records.push(record);
+      flush();
+
+      if (toConsole) {
+        console.log(`\n${"═".repeat(60)}`);
+        console.log(`📞 LLM Call #${record.callIndex} [${record.timestamp}]`);
+        console.log(`${"═".repeat(60)}`);
+        console.log(`📤 Request: ${record.request.messageCount} messages`);
+        for (const msg of record.request.messages) {
+          const preview = typeof msg.content === "string"
+            ? msg.content.slice(0, 100)
+            : JSON.stringify(msg.content).slice(0, 100);
+          console.log(`   [${msg.role}] ${preview}${preview.length >= 100 ? "..." : ""}`);
+        }
+        console.log(`📥 Response (${record.response.durationMs}ms):`);
+        if (record.response.text) {
+          console.log(`   text: ${record.response.text.slice(0, 200)}`);
+        }
+        if (record.response.toolCalls.length > 0) {
+          console.log(`   tools: ${record.response.toolCalls.map(t => t.toolName).join(", ")}`);
+        }
+        console.log(`   usage: ${record.response.usage.totalTokens} tokens`);
+        console.log(`   finish: ${record.response.finishReason}`);
+        console.log(`📁 Log: ${logFile}\n`);
+      }
     },
   };
 }
