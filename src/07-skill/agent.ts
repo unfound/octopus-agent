@@ -156,10 +156,10 @@ export class Agent {
             result: tr.output,
           })),
           usage: {
-            promptTokens: result.usage.promptTokens ?? 0,
-            completionTokens: result.usage.completionTokens ?? 0,
+            inputTokens: result.usage.inputTokens ?? 0,
+            outputTokens: result.usage.outputTokens ?? 0,
             totalTokens: result.usage.totalTokens ?? 0,
-            reasoningTokens: (result.usage as { reasoningTokens?: number }).reasoningTokens,
+            reasoningTokens: result.usage.reasoningTokens,
           },
           finishReason: result.finishReason ?? "unknown",
           durationMs,

@@ -33,8 +33,8 @@ export interface LLMCallRecord {
     toolCalls: Array<{ toolName: string; args: unknown }>;
     toolResults: Array<{ toolName: string; result: unknown }>;
     usage: {
-      promptTokens: number;
-      completionTokens: number;
+      inputTokens: number;
+      outputTokens: number;
       totalTokens: number;
       reasoningTokens?: number;
     };
