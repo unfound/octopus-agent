@@ -21,6 +21,7 @@
 | 07 | [skill](./src/07-skill/) | 可复用技能 — 技能发现、加载、执行 | `npx tsx src/07-skill/chat.ts` | ✅ |
 | 08 | [sub-agent](./src/08-sub-agent/) | 子代理委派 — 隔离上下文 + 受限工具 + MoA | `npx tsx src/08-sub-agent/chat.ts subagent\|delegate\|moa` | ✅ |
 | 09 | [multi-agent](./src/09-multi-agent/) | 对等协作 — MessageBus + Handoff + 广播 | `npx tsx src/09-multi-agent/chat.ts collab\|handoff` | ✅ |
+| 10 | evaluation | 评估框架 — 自动评分 + 回归测试 | — | ⬜ |
 
 ## 🏗️ 目录结构
 
