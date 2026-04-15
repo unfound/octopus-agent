@@ -20,21 +20,26 @@ import { SubAgent } from "./agent";
 import { createDelegateTool } from "./delegate";
 import { mixtureOfAgents } from "./moa";
 import { tools as baseTools } from "../02-tool-system/tools";
-import { createFileLogHooks } from "../shared/hooks";
+import {
+  createFileLogHooks,
+  emitHooksFromResult,
+  type AgentHooks,
+} from "../shared/hooks";
 
 // ========== Demo 1: 基础 SubAgent ==========
 
 async function demoSubAgent() {
   console.log("\n📦 Demo 1: 基础 SubAgent\n");
-  console.log("═".repeat(50));
 
-  const hooks = createFileLogHooks({ prefix: "08-subagent", console: true });
+  // summary 模式：每次 LLM 调用只输出一行
+  // 可改为 'verbose' 输出完整信息，或 false 静默
+  const hooks = createFileLogHooks({ prefix: "08-subagent" });
 
   const child = new SubAgent({
     model: process.env.DEFAULT_MODEL,
     maxTurns: 5,
     tools: baseTools,
-    name: "demo-child",
+    name: "child",
     hooks,
   });
 
@@ -43,27 +48,22 @@ async function demoSubAgent() {
     "工作目录: " + process.cwd(),
   );
 
-  console.log("\n📋 SubAgent 结果:");
-  console.log("  成功:", result.success);
-  console.log("  摘要:", result.summary.slice(0, 300));
-  console.log("  API 调用:", result.stats.apiCalls);
-  console.log("  消息数:", result.stats.messageCount);
-  console.log("  Token 估算:", result.stats.estimatedTokens);
+  // 验证输出 — 简洁地告诉你结果
+  console.log(`\n${"─".repeat(50)}`);
+  console.log(`✅ 完成 | ${result.success ? "成功" : "失败"} | ${result.stats.apiCalls} calls | ${result.stats.estimatedTokens} tok`);
+  console.log(`📋 ${result.summary.slice(0, 200)}${result.summary.length > 200 ? "..." : ""}`);
   if (result.stats.toolTrace.length > 0) {
-    console.log("  工具调用:");
-    for (const t of result.stats.toolTrace) {
-      console.log(`    - ${t.toolName}(${JSON.stringify(t.args).slice(0, 80)})`);
-    }
+    console.log(`🔧 工具: ${result.stats.toolTrace.map(t => t.toolName).join(", ")}`);
   }
+  console.log(`📁 日志: ${hooks.logFile}`);
 }
 
 // ========== Demo 2: 父代理 + delegate ==========
 
 async function demoDelegate() {
-  console.log("\n\n📦 Demo 2: 父代理 + delegate 工具\n");
-  console.log("═".repeat(50));
+  console.log("\n📦 Demo 2: 父代理 + delegate 工具\n");
 
-  const hooks = createFileLogHooks({ prefix: "08-delegate", console: true });
+  const hooks = createFileLogHooks({ prefix: "08-delegate" });
   const model = getModel(process.env.DEFAULT_MODEL);
 
   // 父代理的工具 = 基础工具 + delegate
@@ -73,89 +73,86 @@ async function demoDelegate() {
       tools: baseTools,
       model: process.env.DEFAULT_MODEL,
       maxTurns: 5,
-      hooks,
+      hooks, // 子代理共享同一个 hooks（日志写同一个文件）
     }),
   };
 
-  // 简单的父代理循环（复用 Agent 的模式）
-  const { text } = await generateText({
+  const system =
+    "你是一个智能助手。你可以自己完成任务，也可以用 delegate 工具委派子任务给子代理。" +
+    "子代理有独立上下文，完成后返回摘要给你。";
+
+  const startTime = Date.now();
+  const result = await generateText({
     model,
-    system:
-      "你是一个智能助手。你可以自己完成任务，也可以用 delegate 工具委派子任务给子代理。" +
-      "子代理有独立上下文，完成后返回摘要给你。" +
-      "对于简单任务自己完成，复杂或可并行的任务用 delegate。",
-    prompt: "委派一个子代理来读取 README.md 文件并总结项目内容",
+    system,
+    messages: [{ role: "user", content: "用 delegate 工具读取 package.json 并分析项目结构" }],
     tools: parentTools,
     stopWhen: stepCountIs(5),
   });
 
-  console.log("\n📋 父代理最终回复:", text);
+  // ⚠️ 关键：父代理的 generateText 也需要 hook 记录
+  // emitHooksFromResult 从原始结果提取并触发 hooks
+  emitHooksFromResult(hooks, "parent", result);
+
+  // 验证输出
+  const parentSteps = (result as any).steps ?? [];
+  const delegateCalls = parentSteps.flatMap((s: any) => s.toolCalls ?? [])
+    .filter((tc: any) => tc.toolName === "delegate");
+
+  console.log(`\n${"─".repeat(50)}`);
+  console.log(`✅ 完成 | 父代理 ${parentSteps.length} steps | delegate 调用 ${delegateCalls.length} 次`);
+  console.log(`📋 父代理回复: ${result.text.slice(0, 200)}${result.text.length > 200 ? "..." : ""}`);
+  console.log(`📁 日志: ${hooks.logFile}`);
+  console.log(`\n💡 提示: 日志文件包含 parent + child 的完整记录，用 agentName 字段区分`);
 }
 
 // ========== Demo 3: MoA ==========
 
 async function demoMoA() {
-  console.log("\n\n📦 Demo 3: Mixture-of-Agents\n");
-  console.log("═".repeat(50));
+  console.log("\n📦 Demo 3: MoA（多模型协作推理）\n");
 
-  const question = "JavaScript 中 let、const、var 的区别是什么？简要说明。";
-  console.log(`\n问题: ${question}\n`);
-
-  const result = await mixtureOfAgents(question, {
-    // 本地模型作为参考
-    referenceModels: [process.env.DEFAULT_MODEL || "openrouter/stepfun/step-3.5-flash"],
-    aggregatorModel: process.env.DEFAULT_MODEL || "openrouter/stepfun/step-3.5-flash",
+  const result = await mixtureOfAgents({
+    query: "用一句话解释什么是 TypeScript 的类型系统",
+    models: [
+      process.env.DEFAULT_MODEL,
+      process.env.DEFAULT_MODEL, // 演示用同一个模型
+    ],
+    maxTurns: 3,
+    tools: baseTools,
   });
 
-  console.log("MoA 结果:");
-  console.log("  成功:", result.success);
-  console.log("  参考模型数:", result.referenceResponses.length);
-  console.log("  最终回答:", result.response.slice(0, 500));
+  console.log(`\n${"─".repeat(50)}`);
+  console.log(`✅ 完成 | ${result.responses.length} 个模型响应 | 综合 ${result.synthesis.slice(0, 100)}...`);
 }
 
 // ========== 交互模式 ==========
 
 async function interactiveMode() {
-  console.log("\n\n💬 交互模式 — 输入任务，Agent 用 delegate 执行\n");
-  console.log("═".repeat(50));
+  console.log("\n💬 SubAgent 交互模式\n");
+  console.log("输入任务，子代理会执行并返回结果");
+  console.log('输入 "quit" 退出\n');
 
-  const model = getModel(process.env.DEFAULT_MODEL);
-
-  const parentTools = {
-    ...baseTools,
-    delegate: createDelegateTool({
-      tools: baseTools,
-      model: process.env.DEFAULT_MODEL,
-      maxTurns: 10,
-    }),
-  };
+  const hooks = createFileLogHooks({ prefix: "08-interactive" });
+  const child = new SubAgent({
+    model: process.env.DEFAULT_MODEL,
+    maxTurns: 10,
+    tools: baseTools,
+    name: "child",
+    hooks,
+  });
 
   const rl = createInterface({ input: process.stdin, output: process.stdout });
   const ask = (q: string) => new Promise<string>((r) => rl.question(q, r));
 
-  console.log('输入任务（输入 "quit" 退出）\n');
-
   // eslint-disable-next-line no-constant-condition
   while (true) {
     const input = await ask("🎯 任务: ");
-    if (input.trim().toLowerCase() === "quit") break;
-    if (!input.trim()) continue;
+    const trimmed = input.trim();
+    if (trimmed.toLowerCase() === "quit") break;
+    if (!trimmed) continue;
 
-    try {
-      const { text } = await generateText({
-        model,
-        system:
-          "你是一个智能助手。对于复杂或耗时的任务，使用 delegate 工具委派给子代理。" +
-          "简单任务自己完成。",
-        prompt: input,
-        tools: parentTools,
-        stopWhen: stepCountIs(10),
-      });
-
-      console.log(`\n📋 回复: ${text}\n`);
-    } catch (err) {
-      console.error("❌ 错误:", err);
-    }
+    const result = await child.run(trimmed);
+    console.log(`\n📋 ${result.summary}\n`);
   }
 
   rl.close();

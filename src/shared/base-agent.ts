@@ -225,7 +225,10 @@ export class BaseAgent {
     if (!finalText && steps.length > 0) {
       finalText = "达到最大迭代次数，Agent 停止。";
     }
-    s.add({ role: "assistant", content: finalText });
+    // steps 循环已添加 assistant 消息，无 steps 时需手动添加
+    if (steps.length === 0) {
+      s.add({ role: "assistant", content: finalText });
+    }
 
     return {
       finalText,
