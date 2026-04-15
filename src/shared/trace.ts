@@ -115,44 +115,45 @@ interface TraceLine {
 /**
  * 从日志记录推断调用树结构
  *
- * 规则：
- * - 当一条记录调用了 delegate/parallelDelegate → 下一条不同 agent 的记录是子调用，indent+1
- * - 子调用结束后（回到原 agent）→ indent 归位
+ * 日志写入顺序问题：
+ * AI SDK 的 generateText 跑完所有工具才返回，所以 hooks 的触发顺序是：
+ *   child#1 → child#2 → ... → parent#1(onLLMEnd) → parent#2 → ...
+ * 但实际执行是 parent#1 包裹 child 运行。
+ *
+ * 重建算法：
+ * 1. 扫描日志，找到 "主线 agent"（出现最多的 agentName）
+ * 2. 当遇到非主线 agent 的记录 → buffer 起来（这是子调用）
+ * 3. 当回到主线 agent 且该记录有 delegate toolCall → buffer 中的记录是它的子调用
+ * 4. 输出时子调用缩进
  */
 function buildTraceLines(records: LLMCallRecord[]): TraceLine[] {
+  // 找主线 agent：谁调了 delegate 谁就是主线，没有 delegate 则取出现最多的
+  let primaryAgent: string | undefined;
+  for (const r of records) {
+    if (r.response.toolCalls.some(tc => tc.toolName === "delegate" || tc.toolName === "parallelDelegate")) {
+      primaryAgent = r.agentName;
+      break;
+    }
+  }
+  if (!primaryAgent) {
+    const agentCounts = new Map<string, number>();
+    for (const r of records) {
+      agentCounts.set(r.agentName, (agentCounts.get(r.agentName) ?? 0) + 1);
+    }
+    primaryAgent = Array.from(agentCounts.entries())
+      .sort((a, b) => b[1] - a[1])[0]?.[0] ?? records[0]?.agentName ?? "agent";
+  }
+
   const lines: TraceLine[] = [];
-  let currentIndent = 0;
-  let primaryAgent = records[0]?.agentName ?? "agent";
-  let inDelegate = false;
+  let childBuffer: TraceLine[] = [];
 
-  for (let i = 0; i < records.length; i++) {
-    const r = records[i];
-    const isDelegateCall = r.response.toolCalls.some(
-      tc => tc.toolName === "delegate" || tc.toolName === "parallelDelegate"
-    );
-    const isDifferentAgent = r.agentName !== primaryAgent;
+  for (const r of records) {
+    const isPrimary = r.agentName === primaryAgent;
 
-    // 进入子调用
-    if (isDelegateCall && i + 1 < records.length) {
-      inDelegate = true;
-      currentIndent = 0;
-    }
-
-    // 子 agent 的记录
-    if (isDifferentAgent && inDelegate) {
-      currentIndent = 1;
-    }
-
-    // 回到主 agent
-    if (!isDifferentAgent && inDelegate && currentIndent > 0) {
-      inDelegate = false;
-      currentIndent = 0;
-    }
-
+    // 构建 TraceLine
     const toolNames = r.response.toolCalls.map(tc => tc.toolName);
     const toolArgs = r.response.toolCalls.map(tc => {
       const args = tc.args as Record<string, unknown>;
-      // 提取关键参数
       if (args?.goal) return `goal="${truncate(String(args.goal), 30)}"`;
       if (args?.path) return `path="${String(args.path)}"`;
       if (args?.query) return `query="${truncate(String(args.query), 30)}"`;
@@ -160,29 +161,49 @@ function buildTraceLines(records: LLMCallRecord[]): TraceLine[] {
       return Object.keys(args ?? {}).slice(0, 2).join(", ");
     });
 
-    // 文本预览
-    let textPreview = "";
-    if (r.response.text) {
-      textPreview = truncate(r.response.text, 50);
-    }
-
-    lines.push({
-      indent: currentIndent,
+    const line: TraceLine = {
+      indent: 0,
       agentName: r.agentName,
       callIndex: r.callIndex,
-      textPreview,
+      textPreview: r.response.text ? truncate(r.response.text, 50) : "",
       toolCalls: toolNames,
       toolArgs,
       tokens: r.response.usage.totalTokens,
       duration: r.response.durationMs,
       finishReason: r.response.finishReason,
       messages: r.request.messages,
-    });
+    };
 
-    // delegate 调用后，更新 primaryAgent 为子 agent
-    if (isDelegateCall && i + 1 < records.length) {
-      primaryAgent = records[i + 1].agentName;
+    if (!isPrimary) {
+      // 子 agent 记录 → buffer
+      line.indent = 1;
+      childBuffer.push(line);
+    } else {
+      // 主线 agent 记录
+      const hasDelegate = toolNames.some(
+        n => n === "delegate" || n === "parallelDelegate"
+      );
+
+      if (hasDelegate && childBuffer.length > 0) {
+        // 这条 parent 记录包裹了前面 buffer 中的 child 记录
+        // 输出顺序: parent → indented children
+        lines.push(line);
+        lines.push(...childBuffer);
+        childBuffer = [];
+      } else {
+        // 普通 parent 记录，先 flush 剩余 buffer（不应有，但防御性处理）
+        if (childBuffer.length > 0) {
+          lines.push(...childBuffer);
+          childBuffer = [];
+        }
+        lines.push(line);
+      }
     }
+  }
+
+  // flush 剩余 buffer
+  if (childBuffer.length > 0) {
+    lines.push(...childBuffer);
   }
 
   return lines;

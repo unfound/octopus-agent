@@ -14,17 +14,14 @@
  */
 
 import { createInterface } from "readline";
-import { generateText, stepCountIs } from "ai";
-import { getModel } from "../shared/model";
 import { SubAgent } from "./agent";
 import { createDelegateTool } from "./delegate";
 import { mixtureOfAgents } from "./moa";
 import { tools as baseTools } from "../02-tool-system/tools";
-import {
-  createFileLogHooks,
-  emitHooksFromResult,
-  type AgentHooks,
-} from "../shared/hooks";
+import { createFileLogHooks } from "../shared/hooks";
+import { BaseAgent } from "../shared/base-agent";
+import { MessageStore } from "../shared/message-store";
+import { WindowManager, slidingWindow } from "../03-memory/window";
 
 // ========== Demo 1: 基础 SubAgent ==========
 
@@ -60,50 +57,67 @@ async function demoSubAgent() {
 
 // ========== Demo 2: 父代理 + delegate ==========
 
+/**
+ * 父代理 — 继承 BaseAgent，用 runLoop 走 hooks
+ *
+ * 与直接用 generateText 的区别：
+ * - BaseAgent.runLoop 在每一步触发 hooks（时机正确）
+ * - 有完整的 messages、timestamps、durationMs
+ */
+class ParentAgent extends BaseAgent {
+  /**
+   * 执行父代理任务，返回最终文本
+   *
+   * 内部创建 MessageStore + WindowManager（与 SubAgent 类似），
+   * 但不销毁 — 可以连续调用 chat()
+   */
+  async chat(systemPrompt: string, userMessage: string): Promise<string> {
+    const store = new MessageStore();
+    const wm = new WindowManager(store, slidingWindow(20));
+
+    store.add({ role: "system", content: systemPrompt });
+    store.add({ role: "user", content: userMessage });
+
+    const { finalText } = await this.runLoop(store, wm);
+    return finalText;
+  }
+}
+
 async function demoDelegate() {
   console.log("\n📦 Demo 2: 父代理 + delegate 工具\n");
 
+  // 共享 hooks → 父子日志写同一个文件，用 agentName 区分
   const hooks = createFileLogHooks({ prefix: "08-delegate" });
-  const model = getModel(process.env.DEFAULT_MODEL);
 
-  // 父代理的工具 = 基础工具 + delegate
-  const parentTools = {
-    ...baseTools,
-    delegate: createDelegateTool({
-      tools: baseTools,
-      model: process.env.DEFAULT_MODEL,
-      maxTurns: 5,
-      hooks, // 子代理共享同一个 hooks（日志写同一个文件）
-    }),
-  };
+  // 父代理用 BaseAgent（hooks 在 runLoop 中正确时机触发）
+  const parent = new ParentAgent({
+    model: process.env.DEFAULT_MODEL,
+    maxTurns: 5,
+    name: "parent",
+    hooks,
+    tools: {
+      ...baseTools,
+      delegate: createDelegateTool({
+        tools: baseTools,
+        model: process.env.DEFAULT_MODEL,
+        maxTurns: 5,
+        hooks, // 子代理共享 hooks
+      }),
+    },
+  });
 
   const system =
     "你是一个智能助手。你可以自己完成任务，也可以用 delegate 工具委派子任务给子代理。" +
     "子代理有独立上下文，完成后返回摘要给你。";
 
-  const startTime = Date.now();
-  const result = await generateText({
-    model,
-    system,
-    messages: [{ role: "user", content: "用 delegate 工具读取 package.json 并分析项目结构" }],
-    tools: parentTools,
-    stopWhen: stepCountIs(5),
-  });
-
-  // ⚠️ 关键：父代理的 generateText 也需要 hook 记录
-  // emitHooksFromResult 从原始结果提取并触发 hooks
-  emitHooksFromResult(hooks, "parent", result);
+  const reply = await parent.chat(system, "用 delegate 工具读取 package.json 并分析项目结构");
 
   // 验证输出
-  const parentSteps = (result as any).steps ?? [];
-  const delegateCalls = parentSteps.flatMap((s: any) => s.toolCalls ?? [])
-    .filter((tc: any) => tc.toolName === "delegate");
-
   console.log(`\n${"─".repeat(50)}`);
-  console.log(`✅ 完成 | 父代理 ${parentSteps.length} steps | delegate 调用 ${delegateCalls.length} 次`);
-  console.log(`📋 父代理回复: ${result.text.slice(0, 200)}${result.text.length > 200 ? "..." : ""}`);
+  console.log(`✅ 完成`);
+  console.log(`📋 父代理回复: ${reply.slice(0, 200)}${reply.length > 200 ? "..." : ""}`);
   console.log(`📁 日志: ${hooks.logFile}`);
-  console.log(`\n💡 提示: 日志文件包含 parent + child 的完整记录，用 agentName 字段区分`);
+  console.log(`\n💡 日志按实际执行顺序记录: parent → delegate → delegate → parent`);
 }
 
 // ========== Demo 3: MoA ==========
