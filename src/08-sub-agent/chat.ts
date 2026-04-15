@@ -14,7 +14,7 @@
  */
 
 import { createInterface } from "readline";
-import { generateText } from "ai";
+import { generateText, stepCountIs } from "ai";
 import { getModel } from "../shared/model";
 import { SubAgent } from "./agent";
 import { createDelegateTool } from "./delegate";
@@ -86,6 +86,7 @@ async function demoDelegate() {
       "对于简单任务自己完成，复杂或可并行的任务用 delegate。",
     prompt: "委派一个子代理来读取 README.md 文件并总结项目内容",
     tools: parentTools,
+    stopWhen: stepCountIs(5),
   });
 
   console.log("\n📋 父代理最终回复:", text);
@@ -148,6 +149,7 @@ async function interactiveMode() {
           "简单任务自己完成。",
         prompt: input,
         tools: parentTools,
+        stopWhen: stepCountIs(10),
       });
 
       console.log(`\n📋 回复: ${text}\n`);

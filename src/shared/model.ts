@@ -19,8 +19,15 @@ import "dotenv/config";
  *
  * 本地模型默认走 .chat()（Chat Completions API）
  */
-export function getModel(modelId?: string): LanguageModel {
-  const id = modelId || process.env.DEFAULT_MODEL || "openrouter/stepfun/step-3.5-flash";
+export function getModel(modelId?: string | LanguageModel): LanguageModel {
+  // 直接传入 LanguageModel 实例（用于测试或自定义模型）
+  if (modelId && typeof modelId === "object" && "doGenerate" in modelId) {
+    return modelId;
+  }
+
+  const id = (typeof modelId === "string" ? modelId : undefined)
+    || process.env.DEFAULT_MODEL
+    || "openrouter/stepfun/step-3.5-flash";
 
   if (id.startsWith("openrouter/")) {
     const openai = createOpenAI({

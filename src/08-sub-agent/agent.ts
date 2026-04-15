@@ -1,78 +1,39 @@
 /**
  * 08 - SubAgent（子代理）
  *
- * 与 07 的 Agent 相比，SubAgent 的核心区别：
- * 1. 独立上下文 — 不继承 parent 的对话历史，从零开始
- * 2. 可配置工具集 — 通过 tools 参数传入，而非写死
- * 3. 临时生命周期 — 任务完成即销毁，返回结构化结果
- * 4. 聚焦 system prompt — 由 goal + context 生成，没有技能系统
+ * 与 BaseAgent 的关系：继承核心 runLoop，添加子代理特有的逻辑
  *
- * 不继承 Agent，而是直接组合 shared 模块（MessageStore、WindowManager、hooks）
- * 这样更灵活，避免 Agent 的技能系统污染子代理
+ * SubAgent 的特点：
+ * 1. 独立上下文 — 每次 run() 创建新的 MessageStore
+ * 2. 临时生命周期 — 任务完成即销毁，返回结构化结果
+ * 3. 聚焦 system prompt — 由 goal + context 生成
  */
 
-import {
-  generateText,
-  tool,
-  type ModelMessage,
-  type ToolResultPart,
-  type JSONValue,
-  type ToolSet,
-} from "ai";
-import { z } from "zod";
-import { getModel } from "../shared/model";
+import type { ToolSet } from "ai";
 import { MessageStore } from "../shared/message-store";
-import {
-  WindowManager,
-  type WindowStrategy,
-  slidingWindow,
-} from "../03-memory/window";
-import { type AgentHooks, type LLMCallRecord, countRoles } from "../shared/hooks";
+import { WindowManager, slidingWindow } from "../03-memory/window";
+import { BaseAgent, type BaseAgentConfig } from "../shared/base-agent";
 
 /** 子代理运行结果 */
 export interface SubAgentResult {
-  /** 是否成功 */
   success: boolean;
-  /** 最终摘要 */
   summary: string;
-  /** 错误信息（如果失败） */
   error?: string;
-  /** 统计信息 */
   stats: {
-    /** LLM 调用次数 */
     apiCalls: number;
-    /** 消息总数 */
     messageCount: number;
-    /** 总 token 粗估 */
     estimatedTokens: number;
-    /** 工具调用追踪 */
     toolTrace: Array<{ toolName: string; args: unknown; result: unknown }>;
   };
 }
 
 /** SubAgent 配置 */
-export interface SubAgentConfig {
-  /** 模型 ID（默认继承 parent） */
-  model?: string;
-  /** 最大迭代次数 */
-  maxTurns?: number;
-  /** 窗口策略 */
-  strategy?: WindowStrategy;
-  /** 可用工具集（默认空 — 纯对话代理） */
+export interface SubAgentConfig extends BaseAgentConfig {
   tools?: ToolSet;
-  /** 名称（用于日志） */
-  name?: string;
-  /** Hooks */
-  hooks?: AgentHooks;
 }
 
 /**
  * 构建子代理的 system prompt
- *
- * 核心原则：
- * - 明确告诉 agent 它的任务是什么
- * - 要求完成后给出结构化摘要
- * - 不注入技能系统、记忆系统等复杂模块
  */
 function buildSystemPrompt(goal: string, context?: string): string {
   const parts = [
@@ -105,7 +66,7 @@ function buildSystemPrompt(goal: string, context?: string): string {
  * 用法：
  * ```typescript
  * const child = new SubAgent({
- *   model: "openrouter/stepfun/step-3.5-flash",
+ *   model: "local/qwen/qwen3.5-9b",
  *   tools: { readFile, execCommand },
  *   maxTurns: 10,
  * });
@@ -118,166 +79,40 @@ function buildSystemPrompt(goal: string, context?: string): string {
  * console.log(result.summary);
  * ```
  */
-export class SubAgent {
-  private model: ReturnType<typeof getModel>;
-  private maxTurns: number;
-  private tools: ToolSet;
-  private name: string;
-  private hooks?: AgentHooks;
-
+export class SubAgent extends BaseAgent {
   constructor(config: SubAgentConfig = {}) {
-    this.model = getModel(config.model);
-    this.maxTurns = config.maxTurns ?? 10;
-    this.tools = config.tools ?? {};
-    this.name = config.name ?? "subagent";
-    this.hooks = config.hooks;
+    // super() 创建的 store/windowManager 不会被使用
+    // SubAgent 每次 run() 创建独立的新实例
+    super(config);
   }
 
-  /**
-   * 运行子代理
-   *
-   * @param goal 任务目标
-   * @param context 可选上下文
-   * @returns SubAgentResult
-   */
   async run(goal: string, context?: string): Promise<SubAgentResult> {
     // 每次 run 创建独立的 store
     const store = new MessageStore();
-    const windowManager = new WindowManager(store, slidingWindow(20));
+    const wm = new WindowManager(store, slidingWindow(20));
 
-    // 注入 system prompt
     store.add({
       role: "system",
       content: buildSystemPrompt(goal, context),
     });
-
-    // 注入用户消息（触发执行）
     store.add({ role: "user", content: goal });
 
-    const injectedMessages = await windowManager.apply();
-    const toolTrace: SubAgentResult["stats"]["toolTrace"] = [];
-    let callCounter = 0;
-
     try {
-      for (let turn = 0; turn < this.maxTurns; turn++) {
-        const messages: ModelMessage[] = [
-          ...injectedMessages,
-          ...store.getMessages(),
-        ];
-        callCounter++;
+      const { finalText, stats } = await this.runLoop(store, wm);
 
-        // hooks
-        const callIndex = callCounter;
-        const timestamp = new Date().toISOString();
-        const requestRecord = {
-          callIndex,
-          timestamp,
-          agentName: this.name,
-          request: {
-            messages: [...messages],
-            messageCount: messages.length,
-            roleStats: countRoles(messages),
-          },
+      if (stats.apiCalls < this.maxTurns) {
+        return {
+          success: true,
+          summary: finalText || "任务完成，无输出。",
+          stats,
         };
-        this.hooks?.onLLMStart?.(requestRecord);
-
-        const startTime = Date.now();
-        const result = await generateText({
-          model: this.model,
-          messages,
-          tools: this.tools,
-        });
-        const durationMs = Date.now() - startTime;
-
-        // hooks
-        const fullRecord: LLMCallRecord = {
-          ...requestRecord,
-          response: {
-            text: result.text,
-            toolCalls: (result.toolCalls ?? []).map((tc) => ({
-              toolName: tc.toolName,
-              args: tc.input,
-            })),
-            toolResults: (result.toolResults ?? []).map((tr) => ({
-              toolName: tr.toolName,
-              result: tr.output,
-            })),
-            usage: {
-              inputTokens: result.usage.inputTokens ?? 0,
-              outputTokens: result.usage.outputTokens ?? 0,
-              totalTokens: result.usage.totalTokens ?? 0,
-              reasoningTokens: result.usage.reasoningTokens,
-            },
-            finishReason: result.finishReason ?? "unknown",
-            durationMs,
-          },
-        };
-        this.hooks?.onLLMEnd?.(fullRecord);
-
-        // 没有工具调用 → 结束
-        if (!result.toolCalls || result.toolCalls.length === 0) {
-          const summary = result.text || "任务完成，无输出。";
-          store.add({ role: "assistant", content: summary });
-
-          return {
-            success: true,
-            summary,
-            stats: {
-              apiCalls: callCounter,
-              messageCount: store.length,
-              estimatedTokens: store.totalEstimatedTokens,
-              toolTrace,
-            },
-          };
-        }
-
-        // 处理工具调用
-        store.add({
-          role: "assistant",
-          content: result.text || "",
-        });
-
-        for (const tc of result.toolCalls) {
-          const toolResult = result.toolResults?.find(
-            (tr) => tr.toolCallId === tc.toolCallId,
-          );
-
-          this.hooks?.onToolCall?.(tc.toolName, tc.input);
-
-          // 记录 trace
-          toolTrace.push({
-            toolName: tc.toolName,
-            args: tc.input,
-            result: toolResult?.output,
-          });
-
-          const toolResultPart: ToolResultPart = {
-            type: "tool-result",
-            toolCallId: tc.toolCallId,
-            toolName: tc.toolName,
-            output: toolResult
-              ? { type: "json", value: toolResult.output as JSONValue }
-              : { type: "text", value: "工具执行完成" },
-          };
-          store.add({ role: "tool", content: [toolResultPart] });
-
-          if (toolResult) {
-            this.hooks?.onToolResult?.(tc.toolName, toolResult.output);
-          }
-        }
       }
 
-      // 达到最大迭代次数
       return {
         success: false,
         summary: "达到最大迭代次数，子代理停止。",
         error: `超过最大迭代次数 (${this.maxTurns})`,
-        stats: {
-          apiCalls: callCounter,
-          messageCount: store.length,
-          estimatedTokens: store.totalEstimatedTokens,
-          toolTrace,
-        },
+        stats,
       };
     } catch (err) {
       return {
@@ -285,10 +120,10 @@ export class SubAgent {
         summary: "",
         error: String(err),
         stats: {
-          apiCalls: callCounter,
+          apiCalls: 0,
           messageCount: store.length,
           estimatedTokens: store.totalEstimatedTokens,
-          toolTrace,
+          toolTrace: [],
         },
       };
     }
