@@ -55,7 +55,8 @@ export class BaseAgent {
   protected model: ReturnType<typeof getModel>;
   protected maxTurns: number;
   protected tools: ToolSet;
-  protected name: string;
+  /** Agent 名称 — 子类可通过 getInfo() 暴露给外部 */
+  readonly name: string;
   protected hooks?: AgentHooks;
   protected store: MessageStore;
   protected windowManager: WindowManager;

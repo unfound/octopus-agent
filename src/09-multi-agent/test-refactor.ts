@@ -180,7 +180,7 @@ async function testMultiAgentHooksDistinction() {
 
   const allRecords: LLMCallRecord[] = [];
   const hooks: AgentHooks = {
-    onLLMEnd: (r) => allRecords.push(r),
+    onLLMEnd: (r) => { allRecords.push(r); },
   };
 
   const bus = new MessageBus();

@@ -125,18 +125,10 @@ async function demoDelegate() {
 async function demoMoA() {
   console.log("\n📦 Demo 3: MoA（多模型协作推理）\n");
 
-  const result = await mixtureOfAgents({
-    query: "用一句话解释什么是 TypeScript 的类型系统",
-    models: [
-      process.env.DEFAULT_MODEL,
-      process.env.DEFAULT_MODEL, // 演示用同一个模型
-    ],
-    maxTurns: 3,
-    tools: baseTools,
-  });
+  const result = await mixtureOfAgents("用一句话解释什么是 TypeScript 的类型系统");
 
   console.log(`\n${"─".repeat(50)}`);
-  console.log(`✅ 完成 | ${result.responses.length} 个模型响应 | 综合 ${result.synthesis.slice(0, 100)}...`);
+  console.log(`✅ 完成 | ${result.referenceResponses.length} 个模型响应 | 综合 ${result.response.slice(0, 100)}...`);
 }
 
 // ========== 交互模式 ==========

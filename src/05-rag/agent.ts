@@ -136,6 +136,7 @@ export class Agent {
       const requestRecord = {
         callIndex,
         timestamp,
+        agentName: "rag-agent",
         request: {
           messages: [...messages],
           messageCount: messages.length,

@@ -78,7 +78,7 @@ async function testSimpleTextResponse() {
 
   const hookRecords: LLMCallRecord[] = [];
   const hooks: AgentHooks = {
-    onLLMEnd: (r) => hookRecords.push(r),
+    onLLMEnd: (r) => { hookRecords.push(r); },
   };
 
   const agent = new SubAgent({ model: model as any, maxTurns: 5, hooks, name: "test-child" });
@@ -114,8 +114,8 @@ async function testToolCallThenText() {
   const hookRecords: LLMCallRecord[] = [];
   const toolCalls: Array<{ name: string; args: unknown }> = [];
   const hooks: AgentHooks = {
-    onLLMEnd: (r) => hookRecords.push(r),
-    onToolCall: (name, args) => toolCalls.push({ name, args }),
+    onLLMEnd: (r) => { hookRecords.push(r); },
+    onToolCall: (name, args) => { toolCalls.push({ name, args }); },
   };
 
   const agent = new SubAgent({
@@ -161,7 +161,7 @@ async function testMaxTurnsExceeded() {
   assert(result.success === false, "result.success === false (max turns)");
   assert(result.stats.apiCalls === 3, `apiCalls === 3 (got ${result.stats.apiCalls})`);
   assert(result.stats.toolTrace.length === 3, `toolTrace.length === 3`);
-  assert(result.error?.includes("最大迭代次数"), `error mentions max iterations`);
+  assert(result.error?.includes("最大迭代次数") === true, `error mentions max iterations`);
 }
 
 async function testIsolatedContext() {
@@ -228,7 +228,7 @@ async function testDelegateIntegration() {
   // 共享 hooks — 验证父子都触发
   const allRecords: LLMCallRecord[] = [];
   const hooks: AgentHooks = {
-    onLLMEnd: (r) => allRecords.push(r),
+    onLLMEnd: (r) => { allRecords.push(r); },
   };
 
   // 注意：delegate 工具内部创建 SubAgent 时会用自己的 model
@@ -270,7 +270,7 @@ async function testHooksAgentNameDistinction() {
 
   const allRecords: LLMCallRecord[] = [];
   const hooks: AgentHooks = {
-    onLLMEnd: (r) => allRecords.push(r),
+    onLLMEnd: (r) => { allRecords.push(r); },
   };
 
   const agentA = new SubAgent({ model: model1 as any, maxTurns: 5, hooks, name: "agent-a" });
