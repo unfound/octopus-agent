@@ -21,8 +21,8 @@
 | 07 | [skill](./src/07-skill/) | 可复用技能 — 技能发现、加载、执行 | `npx tsx src/07-skill/chat.ts` | ✅ |
 | 08 | [sub-agent](./src/08-sub-agent/) | 子代理委派 — 隔离上下文 + 受限工具 + MoA | `npx tsx src/08-sub-agent/chat.ts subagent\|delegate\|moa` | ✅ |
 || 09 | [multi-agent](./src/09-multi-agent/) | 对等协作 — MessageBus + Handoff + 广播 | `npx tsx src/09-multi-agent/chat.ts collab\|handoff` | ✅ |
-|| 10 | sandbox | 权限控制 — 工具白名单 + 沙箱执行 + 敏感信息过滤 | `npx tsx src/10-sandbox/chat.ts` | ⬜ |
-|| 11 | evaluation | 评估框架 — 自动评分 + 回归测试 | — | ⬜ |
+|| 10 | sandbox | 权限控制 — 工具白名单 + 沙箱执行 + 敏感信息过滤 | `npx tsx src/10-sandbox/chat.ts` | ✅ |
+|| 11 | evaluation | 评估框架 — 关键词校验 + LLM Judge + 回归测试 | `npx tsx src/11-evaluation/chat.ts` | ✅ |
 
 ## 🏗️ 目录结构
 
@@ -42,7 +42,8 @@ octopus-agent/
 │   ├── 07-skill/            # 可复用技能系统
 │   ├── 08-sub-agent/        # 子代理委派 — 隔离上下文 + MoA
 │   ├── 09-multi-agent/      # 对等协作 — MessageBus + Handoff
-│   └── 10-sandbox/          # 权限控制 — 工具白名单 + 沙箱执行 + 敏感信息过滤
+│   ├── 10-sandbox/          # 权限控制 — 工具白名单 + 沙箱执行 + 敏感信息过滤
+│   └── 11-evaluation/       # 评估框架 — 关键词校验 + LLM Judge + 回归测试
 ├── tests/                   # 测试（含各章节集成测试）
 ├── .env                     # API keys（不提交）
 └── package.json
