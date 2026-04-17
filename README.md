@@ -20,8 +20,9 @@
 | 06 | [mcp](./src/06-mcp/) | MCP 协议 — 标准化工具/资源接入 | `npx tsx src/06-mcp/chat.ts` | ✅ |
 | 07 | [skill](./src/07-skill/) | 可复用技能 — 技能发现、加载、执行 | `npx tsx src/07-skill/chat.ts` | ✅ |
 | 08 | [sub-agent](./src/08-sub-agent/) | 子代理委派 — 隔离上下文 + 受限工具 + MoA | `npx tsx src/08-sub-agent/chat.ts subagent\|delegate\|moa` | ✅ |
-| 09 | [multi-agent](./src/09-multi-agent/) | 对等协作 — MessageBus + Handoff + 广播 | `npx tsx src/09-multi-agent/chat.ts collab\|handoff` | ✅ |
-| 10 | evaluation | 评估框架 — 自动评分 + 回归测试 | — | ⬜ |
+|| 09 | [multi-agent](./src/09-multi-agent/) | 对等协作 — MessageBus + Handoff + 广播 | `npx tsx src/09-multi-agent/chat.ts collab\|handoff` | ✅ |
+|| 10 | sandbox | 权限控制 — 工具白名单 + 沙箱执行 + 敏感信息过滤 | `npx tsx src/10-sandbox/chat.ts` | ⬜ |
+|| 11 | evaluation | 评估框架 — 自动评分 + 回归测试 | — | ⬜ |
 
 ## 🏗️ 目录结构
 
@@ -40,7 +41,8 @@ octopus-agent/
 │   ├── 06-mcp/              # MCP 协议 — Server/Client/工具转换
 │   ├── 07-skill/            # 可复用技能系统
 │   ├── 08-sub-agent/        # 子代理委派 — 隔离上下文 + MoA
-│   └── 09-multi-agent/      # 对等协作 — MessageBus + Handoff
+│   ├── 09-multi-agent/      # 对等协作 — MessageBus + Handoff
+│   └── 10-sandbox/          # 权限控制 — 工具白名单 + 沙箱执行 + 敏感信息过滤
 ├── tests/                   # 测试（含各章节集成测试）
 ├── .env                     # API keys（不提交）
 └── package.json
