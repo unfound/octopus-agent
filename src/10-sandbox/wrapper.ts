@@ -11,6 +11,14 @@ import { PermissionManager } from "./permissions";
 import { Sanitizer } from "./sanitizer";
 import type { ConfirmResult } from "./confirm";
 
+/** 安全事件 */
+export interface SecurityEvent {
+  type: "permission_deny" | "path_deny" | "url_deny" | "sanitize" | "confirm";
+  toolName: string;
+  detail: string;
+  timestamp: string;
+}
+
 /** 包装器配置 */
 export interface WrapperConfig {
   permissions?: PermissionManager;
@@ -19,6 +27,8 @@ export interface WrapperConfig {
   onConfirm?: (toolName: string, input: unknown) => Promise<ConfirmResult>;
   /** 输出过滤：对工具返回值脱敏 */
   sanitizeOutput?: boolean;
+  /** 安全事件回调（用于日志记录） */
+  onSecurityEvent?: (event: SecurityEvent) => void;
 }
 
 /**
@@ -45,6 +55,7 @@ export function wrapTools(
     sanitizer = new Sanitizer(),
     onConfirm,
     sanitizeOutput = false,
+    onSecurityEvent,
   } = config;
 
   const wrapped: ToolSet = {};
@@ -55,6 +66,7 @@ export function wrapTools(
       sanitizer,
       onConfirm,
       sanitizeOutput,
+      onSecurityEvent,
     });
   }
 
@@ -66,9 +78,18 @@ function wrapSingleTool(
   name: string,
   toolDef: any,
   config: Required<Pick<WrapperConfig, "permissions" | "sanitizer">> &
-    Pick<WrapperConfig, "onConfirm" | "sanitizeOutput">,
+    Pick<WrapperConfig, "onConfirm" | "sanitizeOutput" | "onSecurityEvent">,
 ): any {
-  const { permissions, sanitizer, onConfirm, sanitizeOutput } = config;
+  const { permissions, sanitizer, onConfirm, sanitizeOutput, onSecurityEvent } = config;
+
+  const emitEvent = (type: SecurityEvent["type"], detail: string) => {
+    onSecurityEvent?.({
+      type,
+      toolName: name,
+      detail,
+      timestamp: new Date().toISOString(),
+    });
+  };
 
   return {
     ...toolDef,
@@ -76,6 +97,7 @@ function wrapSingleTool(
       // 1. 检查工具权限
       const toolAccess = permissions.checkToolAccess(name);
       if (!toolAccess.allowed) {
+        emitEvent("permission_deny", toolAccess.reason ?? "blocked");
         throw new Error(`权限拒绝: ${toolAccess.reason}`);
       }
 
@@ -83,6 +105,7 @@ function wrapSingleTool(
       if (typeof input === "object" && input !== null && "path" in input) {
         const pathAccess = permissions.checkPathAccess((input as { path: string }).path);
         if (!pathAccess.allowed) {
+          emitEvent("path_deny", pathAccess.reason ?? "blocked");
           throw new Error(`权限拒绝: ${pathAccess.reason}`);
         }
       }
@@ -91,14 +114,17 @@ function wrapSingleTool(
       if (typeof input === "object" && input !== null && "url" in input) {
         const urlAccess = permissions.checkNetworkAccess((input as { url: string }).url);
         if (!urlAccess.allowed) {
+          emitEvent("url_deny", urlAccess.reason ?? "blocked");
           throw new Error(`权限拒绝: ${urlAccess.reason}`);
         }
       }
 
       // 4. 检查是否需要确认
       if (onConfirm && permissions.requiresConfirm(name)) {
+        emitEvent("confirm", "waiting for user confirmation");
         const result = await onConfirm(name, input);
         if (result === "deny") {
+          emitEvent("permission_deny", "user denied");
           throw new Error(`用户拒绝执行工具 "${name}"`);
         }
       }
@@ -108,9 +134,18 @@ function wrapSingleTool(
 
       // 6. 输出脱敏
       if (sanitizeOutput && typeof output === "string") {
-        output = sanitizer.sanitize(output);
+        const sanitized = sanitizer.sanitize(output);
+        if (sanitized !== output) {
+          emitEvent("sanitize", "output sanitized");
+        }
+        output = sanitized;
       } else if (sanitizeOutput && typeof output === "object" && output !== null) {
-        output = JSON.parse(sanitizer.sanitize(JSON.stringify(output)));
+        const jsonStr = JSON.stringify(output);
+        const sanitized = sanitizer.sanitize(jsonStr);
+        if (sanitized !== jsonStr) {
+          emitEvent("sanitize", "output sanitized");
+        }
+        output = JSON.parse(sanitized);
       }
 
       return output;
@@ -132,9 +167,11 @@ export function createSafeTools(
     sanitizeOutput?: boolean;
     /** 确认回调 */
     onConfirm?: (toolName: string, input: unknown) => Promise<ConfirmResult>;
+    /** 安全事件回调（用于日志） */
+    onSecurityEvent?: (event: SecurityEvent) => void;
   } = {},
 ): ToolSet {
-  const { readOnly, sandboxPath, blockedTools = [], sanitizeOutput = true, onConfirm } = options;
+  const { readOnly, sandboxPath, blockedTools = [], sanitizeOutput = true, onConfirm, onSecurityEvent } = options;
 
   // 构建权限配置
   const permConfig: ConstructorParameters<typeof PermissionManager>[0] = {
@@ -154,5 +191,6 @@ export function createSafeTools(
     sanitizer: new Sanitizer(),
     sanitizeOutput,
     onConfirm,
+    onSecurityEvent,
   });
 }

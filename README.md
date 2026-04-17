@@ -111,6 +111,58 @@ npx vitest run tests/03-memory.test.ts              # 记忆系统测试
 npx vitest run tests/04-long-term.test.ts           # 长期记忆测试
 ```
 
+### 调试与分析
+
+#### Trace Viewer — 日志可视化
+
+`src/shared/trace.ts` 读取 hooks 生成的 JSON 日志，输出调用链树状图。
+
+```bash
+# 基本用法：查看调用链
+npx tsx src/shared/trace.ts logs/agent-session.json
+
+# 详细模式：展开 messages
+npx tsx src/shared/trace.ts logs/agent-session.json --verbose
+
+# JSON 模式：输出结构化数据（方便脚本处理）
+npx tsx src/shared/trace.ts logs/agent-session.json --json
+```
+
+**使用场景：**
+
+1. **调试 Agent 行为** — 查看每轮调用的输入输出、工具调用参数
+2. **Token 用量分析** — 统计每次调用的 token 消耗，找出优化点
+3. **多 Agent 调试** — sub-agent / multi-agent 场景下调用树可视化
+4. **性能分析** — 识别耗时长的调用，优化响应速度
+
+**示例输出：**
+
+```
+━━━━━━━━━━━━━━━ Trace: agent-session.json ━━━━━━━━━━━━━━━
+
+  agent        #1 ✅ "研究 TypeScript 的优势..." [read_file×2]  1.2k tok  2.3s
+  └ sub-agent  #1 ✅ "分析完成..." [web_search×1]              0.8k tok  1.5s
+
+━━━━━━━━━━━━━━━━━ Summary ━━━━━━━━━━━━━━━━━
+  agent        2 calls | in 1.5k + out 0.5k = 2.0k tok | 3.8s [read_file×2, web_search×1]
+  ──────────────────────────────────────────────────
+  Total        2 calls | 2.0k tok | 3.8s
+```
+
+#### Hooks 日志系统
+
+每个 Agent 都可以配置 hooks 来记录完整的 LLM 调用：
+
+```typescript
+import { createFileLogHooks } from "./shared/hooks";
+
+const hooks = createFileLogHooks({ prefix: "my-agent" });
+const agent = new PeerAgent({ hooks, ... });
+
+// 运行后日志自动写入 logs/my-agent-*.json
+// 用 trace.ts 查看
+```
+
 ## 📚 技术栈
 
 - **模型通信**: [Vercel AI SDK](https://sdk.vercel.ai/) (`ai` + `@ai-sdk/openai`)

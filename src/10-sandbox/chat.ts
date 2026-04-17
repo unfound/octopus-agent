@@ -19,6 +19,7 @@ import { getModel } from "../shared/model";
 import { PermissionManager, createReadOnlyPermissions } from "./permissions";
 import { Sanitizer, createFileSanitizer } from "./sanitizer";
 import { wrapTools, createSafeTools } from "./wrapper";
+import { createSecurityLogger } from "./logger";
 
 // ========== 模拟工具 ==========
 
@@ -135,11 +136,15 @@ function testSanitizer() {
 async function testToolWrapper() {
   console.log("\n📦 测试 3: 工具包装器 — 权限拦截\n");
 
+  // 创建安全日志记录器
+  const logger = createSecurityLogger({ prefix: "sandbox-demo" });
+
   // 创建安全工具集：禁止 exec，只允许 /tmp 目录
   const safeTools = createSafeTools(mockTools, {
     blockedTools: ["exec"],
     sandboxPath: "/tmp",
     sanitizeOutput: true,
+    onSecurityEvent: logger.record,
   });
 
   console.log("配置: exec 被禁止, 只允许 /tmp 目录\n");
@@ -180,6 +185,10 @@ async function testToolWrapper() {
   } catch (err) {
     console.log(`  ❌ 错误: ${(err as Error).message}`);
   }
+
+  // 输出日志摘要
+  console.log(`\n📝 安全事件日志: ${logger.getLogFile()}`);
+  console.log(`📊 统计: ${JSON.stringify(logger.getSummary())}`);
 }
 
 /** 测试完整 Agent 集成 */
