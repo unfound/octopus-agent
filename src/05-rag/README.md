@@ -40,7 +40,7 @@ npx tsx src/05-rag/chat.ts ./docs/my-notes.txt
 
 1. 启动对话
 2. 输入 `/demo` 加载内置示例文档
-3. 问「Octopus Agent 是什么？」或「有哪些章节？」
+3. 问「Agent Learning 是什么？」或「有哪些章节？」
 4. Agent 会先搜索知识库，再基于结果回答
 
 ## 和 04-long-term 的对比

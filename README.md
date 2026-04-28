@@ -1,4 +1,4 @@
-# 🐙 Octopus Agent
+# 🐙 Agent Learning
 
 > 从零搭建 AI Agent — 基于 Vercel AI SDK 的 TypeScript 学习项目
 
@@ -63,7 +63,7 @@ npx tsx src/14-error-handling/chat.ts stats       # 错误统计
 ## 🏗️ 目录结构
 
 ```
-octopus-agent/
+agent-learning/
 ├── src/
 │   ├── shared/              # 共享模块
 │   │   ├── model.ts         # 模型配置（OpenRouter / 本地模型）
@@ -100,7 +100,7 @@ octopus-agent/
 ### 安装
 
 ```bash
-cd octopus-agent
+cd agent-learning
 npm install
 ```
 

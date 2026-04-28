@@ -24,9 +24,9 @@ const STORE_PATH = "/tmp/octopus-agent/vectors.jsonl";
 
 /** 内置示例文档 */
 const DEMO_DOC = `
-# Octopus Agent
+# Agent Learning
 
-Octopus Agent 是一个从零搭建 AI Agent 的学习项目。
+Agent Learning 是一个从零搭建 AI Agent 的学习项目。
 基于 Vercel AI SDK 用 TypeScript 实现，不依赖高层框架。
 
 ## 核心章节
@@ -82,8 +82,8 @@ async function main() {
     async (msg) => {
       // 特殊命令
       if (msg === "/demo") {
-        const count = await agent.indexText(DEMO_DOC, "octopus-agent-overview.md");
-        return `✅ 已加载示例文档 (${count} 个切片)。现在可以问关于 Octopus Agent 的问题了！`;
+        const count = await agent.indexText(DEMO_DOC, "agent-learning-overview.md");
+        return `✅ 已加载示例文档 (${count} 个切片)。现在可以问关于 Agent Learning 的问题了！`;
       }
 
       if (msg.startsWith("/index ")) {

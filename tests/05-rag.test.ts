@@ -166,7 +166,7 @@ describe("rag", () => {
     await rag.init();
 
     // 索引一些文档
-    await rag.indexText("Octopus Agent 是一个 TypeScript 学习项目", "intro.md");
+    await rag.indexText("Agent Learning 是一个 TypeScript 学习项目", "intro.md");
     await rag.indexText("使用 Vercel AI SDK 做底层通信", "tech.md");
     await rag.indexText("今天天气很好，适合出去散步", "weather.md");
 

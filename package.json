@@ -1,5 +1,5 @@
 {
-  "name": "octopus-agent",
+  "name": "agent-learning",
   "version": "0.1.0",
   "description": "从零搭建 AI Agent — 基于 Vercel AI SDK 的 TypeScript 学习项目",
   "type": "module",
