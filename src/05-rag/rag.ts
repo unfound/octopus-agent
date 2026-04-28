@@ -13,7 +13,8 @@
  */
 
 import { readFile } from "fs/promises";
-import { chunkText, type Chunk } from "./chunker";
+
+import { chunkText } from "./chunker";
 import { embedText, embedTexts } from "./embedder";
 import { VectorStore, type SearchResult } from "./vector-store";
 

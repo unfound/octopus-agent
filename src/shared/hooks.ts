@@ -9,11 +9,20 @@
  * - 完整数据写文件（人类事后分析用）
  * - Console 只输出摘要行（人类实时监控用，一行 = 一次 LLM 调用）
  * - 多 agent 场景用 agentName 区分来源
+ *
+ * 共享函数：
+ * - emitStepsHooks: 遍历 steps 触发 hooks → base-agent.ts 和 emitHooksFromResult 共用
  */
 
 import { writeFileSync, mkdirSync, existsSync } from "fs";
 import { join } from "path";
-import type { ModelMessage } from "ai";
+import type {
+  ModelMessage,
+  ToolSet,
+  StepResult,
+  TypedToolCall,
+  TypedToolResult,
+} from "ai";
 
 /** 单次 LLM 调用的完整记录 */
 export interface LLMCallRecord {
@@ -70,6 +79,99 @@ export interface LogConfig {
 }
 
 /**
+ * Tool trace 条目（收集工具调用记录）
+ */
+export interface ToolTraceEntry {
+  toolName: string;
+  args: unknown;
+  result: unknown;
+}
+
+// ====== 共享函数：步骤 hooks 触发 ======
+
+/**
+ * 遍历 StepResult 数组，触发所有 hooks 并收集 tool trace
+ *
+ * base-agent.ts 和 emitHooksFromResult 共用此函数，
+ * 避免代码重复。
+ *
+ * @returns { callCounter, toolTrace } 供调用方使用
+ */
+export function emitStepsHooks(
+  steps: Array<StepResult<ToolSet>>,
+  hooks: AgentHooks | undefined,
+  agentName: string,
+  messages: ModelMessage[],
+  startTime: number,
+): { callCounter: number; toolTrace: ToolTraceEntry[] } {
+  let callCounter = 0;
+  const toolTrace: ToolTraceEntry[] = [];
+
+  for (const step of steps) {
+    callCounter++;
+
+    const requestRecord: Omit<LLMCallRecord, "response"> = {
+      callIndex: callCounter,
+      timestamp: new Date().toISOString(),
+      agentName,
+      request: {
+        messages: [...messages],
+        messageCount: messages.length,
+        roleStats: countRoles(messages),
+      },
+    };
+    hooks?.onLLMStart?.(requestRecord);
+
+    const fullRecord: LLMCallRecord = {
+      ...requestRecord,
+      response: {
+        text: step.text ?? "",
+        toolCalls: (step.toolCalls ?? []).map((tc: TypedToolCall<ToolSet>) => ({
+          toolName: tc.toolName,
+          args: tc.input,
+        })),
+        toolResults: (step.toolResults ?? []).map((tr: TypedToolResult<ToolSet>) => ({
+          toolName: tr.toolName,
+          result: tr.output,
+        })),
+        usage: {
+          inputTokens: step.usage?.inputTokens ?? 0,
+          outputTokens: step.usage?.outputTokens ?? 0,
+          totalTokens: step.usage?.totalTokens ?? 0,
+          reasoningTokens: step.usage?.reasoningTokens,
+        },
+        finishReason: step.finishReason ?? "unknown",
+        durationMs: Date.now() - startTime,
+      },
+    };
+    hooks?.onLLMEnd?.(fullRecord);
+
+    // 收集 tool trace + 触发 onToolCall/onToolResult
+    for (const tc of step.toolCalls ?? []) {
+      const toolResult = (step.toolResults ?? []).find(
+        (tr: TypedToolResult<ToolSet>) => tr.toolCallId === tc.toolCallId,
+      );
+
+      hooks?.onToolCall?.(tc.toolName, tc.input);
+
+      toolTrace.push({
+        toolName: tc.toolName,
+        args: tc.input,
+        result: toolResult?.output,
+      });
+
+      if (toolResult) {
+        hooks?.onToolResult?.(tc.toolName, toolResult.output);
+      }
+    }
+  }
+
+  return { callCounter, toolTrace };
+}
+
+// ====== 格式化 ======
+
+/**
  * 格式化调用摘要为一行
  *
  * 示例输出:
@@ -98,6 +200,8 @@ function formatSummary(record: LLMCallRecord): string {
 
   return `${icon} [${agent} ${call}] ${record.request.messageCount} msgs → ${textPreview} ${toolInfo} | ${tokens} tok | ${duration}s`;
 }
+
+// ====== 日志 hooks 工厂 ======
 
 /**
  * 创建文件日志 hooks
@@ -175,71 +279,48 @@ export function createFileLogHooks(config: Partial<LogConfig> = {}): AgentHooks 
 export function emitHooksFromResult(
   hooks: AgentHooks | undefined,
   agentName: string,
-  result: { steps?: Array<Record<string, unknown>>; text?: string; usage?: Record<string, unknown>; finishReason?: string },
+  result: {
+    steps?: Array<StepResult<ToolSet>>;
+    text?: string;
+    usage?: {
+      inputTokens?: number;
+      outputTokens?: number;
+      totalTokens?: number;
+    };
+    finishReason?: string;
+  },
 ): void {
-  if (!hooks?.onLLMEnd) return;
-
-  const steps: Array<Record<string, unknown>> = (result as any).steps ?? [];
-  let callIndex = 0;
+  const steps = result.steps ?? [];
   const startTime = Date.now();
 
-  const emitRecord = (data: {
-    text: string;
-    toolCalls: Array<{ toolName: string; args: unknown }>;
-    toolResults: Array<{ toolName: string; result: unknown }>;
-    usage: { inputTokens: number; outputTokens: number; totalTokens: number };
-    finishReason: string;
-    messages?: ModelMessage[];
-  }) => {
-    callIndex++;
+  if (steps.length > 0) {
+    // 复用共享的步骤 hooks 触发函数
+    emitStepsHooks(steps, hooks, agentName, [], startTime);
+  } else if (hooks?.onLLMEnd) {
+    // 无步骤时的简单记录
     const record: LLMCallRecord = {
-      callIndex,
+      callIndex: 1,
       timestamp: new Date().toISOString(),
       agentName,
       request: {
-        messages: data.messages ?? [],
-        messageCount: data.messages?.length ?? 0,
-        roleStats: data.messages ? countRoles(data.messages) : {},
+        messages: [],
+        messageCount: 0,
+        roleStats: {},
       },
       response: {
-        text: data.text,
-        toolCalls: data.toolCalls,
-        toolResults: data.toolResults,
-        usage: data.usage,
-        finishReason: data.finishReason,
+        text: result.text ?? "",
+        toolCalls: [],
+        toolResults: [],
+        usage: {
+          inputTokens: result.usage?.inputTokens ?? 0,
+          outputTokens: result.usage?.outputTokens ?? 0,
+          totalTokens: result.usage?.totalTokens ?? 0,
+        },
+        finishReason: result.finishReason ?? "unknown",
         durationMs: Date.now() - startTime,
       },
     };
-    hooks.onLLMEnd!(record);
-  };
-
-  if (steps.length > 0) {
-    for (const step of steps) {
-      const s = step as any;
-      emitRecord({
-        text: s.text ?? "",
-        toolCalls: (s.toolCalls ?? []).map((tc: any) => ({ toolName: tc.toolName, args: tc.input })),
-        toolResults: (s.toolResults ?? []).map((tr: any) => ({ toolName: tr.toolName, result: tr.output })),
-        usage: {
-          inputTokens: s.usage?.inputTokens ?? 0,
-          outputTokens: s.usage?.outputTokens ?? 0,
-          totalTokens: s.usage?.totalTokens ?? 0,
-        },
-        finishReason: s.finishReason ?? "unknown",
-      });
-    }
-  } else {
-    emitRecord({
-      text: result.text ?? "",
-      toolCalls: [],
-      toolResults: [],
-      usage: {
-        inputTokens: (result.usage as any)?.inputTokens ?? 0,
-        outputTokens: (result.usage as any)?.outputTokens ?? 0,
-        totalTokens: (result.usage as any)?.totalTokens ?? 0,
-      },
-      finishReason: result.finishReason ?? "unknown",
-    });
+    hooks.onLLMEnd(record);
   }
 }
 

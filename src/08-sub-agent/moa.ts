@@ -16,7 +16,8 @@
  *   - 单模型表现不稳定时（投票效应）
  */
 
-import { generateText, tool, type LanguageModel } from "ai";
+
+import { generateText, tool } from "ai";
 import { z } from "zod";
 import { getModel } from "../shared/model";
 

@@ -16,9 +16,9 @@ import { createInterface } from "node:readline";
 import { tool, generateText, stepCountIs } from "ai";
 import { z } from "zod";
 import { getModel } from "../shared/model";
-import { PermissionManager, createReadOnlyPermissions } from "./permissions";
-import { Sanitizer, createFileSanitizer } from "./sanitizer";
-import { wrapTools, createSafeTools } from "./wrapper";
+import { PermissionManager } from "./permissions";
+import { Sanitizer } from "./sanitizer";
+import { createSafeTools } from "./wrapper";
 import { createSecurityLogger } from "./logger";
 
 // ========== 模拟工具 ==========
@@ -152,6 +152,7 @@ async function testToolWrapper() {
   // 测试 1: 调用被禁止的工具
   console.log("测试 1: 调用 exec 工具");
   try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (safeTools.exec as any).execute({ command: "ls" });
     console.log("  ❌ 应该被拦截但没有");
   } catch (err) {
@@ -161,6 +162,7 @@ async function testToolWrapper() {
   // 测试 2: 读取被禁止的路径
   console.log("\n测试 2: 读取 /etc/passwd");
   try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (safeTools.read_file as any).execute({ path: "/etc/passwd" });
     console.log("  ❌ 应该被拦截但没有");
   } catch (err) {
@@ -170,6 +172,7 @@ async function testToolWrapper() {
   // 测试 3: 读取允许的路径
   console.log("\n测试 3: 读取 /tmp/test.txt");
   try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = await (safeTools.read_file as any).execute({ path: "/tmp/test.txt" });
     console.log(`  ✅ 成功: ${result}`);
   } catch (err) {
@@ -179,6 +182,7 @@ async function testToolWrapper() {
   // 测试 4: 输出脱敏
   console.log("\n测试 4: 读取 .env 文件（输出脱敏）");
   try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = await (safeTools.read_file as any).execute({ path: "/tmp/.env" });
     console.log(`  结果: ${result}`);
     console.log(`  ✅ 输出已脱敏`);
@@ -192,7 +196,7 @@ async function testToolWrapper() {
 }
 
 /** 测试完整 Agent 集成 */
-async function testAgentIntegration() {
+async function _testAgentIntegration() {
   console.log("\n📦 测试 4: Agent 集成（使用安全工具）\n");
 
   // 创建安全工具集
@@ -256,7 +260,7 @@ async function interactiveMode() {
 
   const messages: Array<{ role: "user" | "assistant"; content: string }> = [];
 
-  // eslint-disable-next-line no-constant-condition
+
   while (true) {
     const input = await ask("🔒 安全Agent: ");
     const trimmed = input.trim();

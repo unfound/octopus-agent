@@ -14,7 +14,7 @@
 import { createInterface } from "readline";
 import { tool } from "ai";
 import { z } from "zod";
-import { getModel } from "../shared/model";
+
 import { MessageBus } from "./message-bus";
 import { PeerAgent } from "./agent";
 import { createHandoffTool, createBroadcastTool } from "./handoff";
@@ -204,7 +204,7 @@ async function interactiveMode() {
   const rl = createInterface({ input: process.stdin, output: process.stdout });
   const ask = (q: string) => new Promise<string>((r) => rl.question(q, r));
 
-  // eslint-disable-next-line no-constant-condition
+
   while (true) {
     const input = await ask("🎯 任务: ");
     const trimmed = input.trim();

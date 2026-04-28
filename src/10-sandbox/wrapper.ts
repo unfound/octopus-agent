@@ -5,8 +5,8 @@
  * 透明地包装现有工具，不改变原始工具定义
  */
 
-import { tool, type ToolSet } from "ai";
-import { z } from "zod";
+import { type ToolSet, type Tool } from "ai";
+
 import { PermissionManager } from "./permissions";
 import { Sanitizer } from "./sanitizer";
 import type { ConfirmResult } from "./confirm";
@@ -76,10 +76,10 @@ export function wrapTools(
 /** 包装单个工具 */
 function wrapSingleTool(
   name: string,
-  toolDef: any,
+  toolDef: Tool,
   config: Required<Pick<WrapperConfig, "permissions" | "sanitizer">> &
     Pick<WrapperConfig, "onConfirm" | "sanitizeOutput" | "onSecurityEvent">,
-): any {
+): Tool {
   const { permissions, sanitizer, onConfirm, sanitizeOutput, onSecurityEvent } = config;
 
   const emitEvent = (type: SecurityEvent["type"], detail: string) => {
@@ -130,7 +130,13 @@ function wrapSingleTool(
       }
 
       // 5. 执行原始工具
-      let output = await toolDef.execute(input);
+      if (!toolDef.execute) {
+        throw new Error(`工具 "${name}" 没有本地 execute 函数`);
+      }
+      let output = await toolDef.execute(input as never, {
+        toolCallId: "sandbox-" + Date.now(),
+        messages: [],
+      });
 
       // 6. 输出脱敏
       if (sanitizeOutput && typeof output === "string") {

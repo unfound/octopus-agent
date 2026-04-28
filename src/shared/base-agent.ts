@@ -15,6 +15,8 @@ import {
   type ToolResultPart,
   type JSONValue,
   type ToolSet,
+  type StepResult,
+  type TypedToolResult,
 } from "ai";
 import { getModel } from "./model";
 import { MessageStore } from "./message-store";
@@ -23,7 +25,7 @@ import {
   type WindowStrategy,
   slidingWindow,
 } from "../03-memory/window";
-import { type AgentHooks, type LLMCallRecord, countRoles } from "./hooks";
+import { type AgentHooks, countRoles, emitStepsHooks } from "./hooks";
 
 /** agentLoop 的返回值 */
 export interface AgentLoopResult {
@@ -93,10 +95,6 @@ export class BaseAgent {
       ...s.getMessages(),
     ];
 
-    // === Hooks: onLLMStart（第一轮） ===
-    let callCounter = 0;
-    const toolTrace: AgentLoopResult["stats"]["toolTrace"] = [];
-
     const startTime = Date.now();
 
     // 单次 generateText + stopWhen，SDK 内部自动循环
@@ -107,72 +105,22 @@ export class BaseAgent {
       stopWhen: stepCountIs(this.maxTurns),
     });
 
-    // === 遍历每一步，触发 hooks + 收集 trace ===
-    const steps: Array<any> = (result as any).steps ?? [];
-    for (const step of steps) {
-      callCounter++;
+    // === 遍历步骤，触发 hooks + 收集 trace（复用共享函数） ===
+    const steps: Array<StepResult<ToolSet>> =
+      (result as { steps?: Array<StepResult<ToolSet>> }).steps ?? [];
 
-      const requestRecord: Omit<LLMCallRecord, "response"> = {
-        callIndex: callCounter,
-        timestamp: new Date().toISOString(),
-        agentName: this.name,
-        request: {
-          messages: [...messages],
-          messageCount: messages.length,
-          roleStats: countRoles(messages),
-        },
-      };
-      this.hooks?.onLLMStart?.(requestRecord);
-
-      const fullRecord: LLMCallRecord = {
-        ...requestRecord,
-        response: {
-          text: step.text ?? "",
-          toolCalls: (step.toolCalls ?? []).map((tc: any) => ({
-            toolName: tc.toolName,
-            args: tc.input,
-          })),
-          toolResults: (step.toolResults ?? []).map((tr: any) => ({
-            toolName: tr.toolName,
-            result: tr.output,
-          })),
-          usage: {
-            inputTokens: step.usage?.inputTokens ?? 0,
-            outputTokens: step.usage?.outputTokens ?? 0,
-            totalTokens: step.usage?.totalTokens ?? 0,
-            reasoningTokens: step.usage?.reasoningTokens,
-          },
-          finishReason: step.finishReason ?? "unknown",
-          durationMs: Date.now() - startTime,
-        },
-      };
-      this.hooks?.onLLMEnd?.(fullRecord);
-
-      // 收集 tool trace + 触发 onToolCall/onToolResult
-      for (const tc of step.toolCalls ?? []) {
-        const toolResult = (step.toolResults ?? []).find(
-          (tr: any) => tr.toolCallId === tc.toolCallId,
-        );
-
-        this.hooks?.onToolCall?.(tc.toolName, tc.input);
-
-        toolTrace.push({
-          toolName: tc.toolName,
-          args: tc.input,
-          result: toolResult?.output,
-        });
-
-        if (toolResult) {
-          this.hooks?.onToolResult?.(tc.toolName, toolResult.output);
-        }
-      }
-    }
+    const { callCounter, toolTrace } = emitStepsHooks(
+      steps,
+      this.hooks,
+      this.name,
+      messages,
+      startTime,
+    );
 
     // 如果没有 steps（无工具调用的简单场景），至少触发一次 hook
     if (steps.length === 0) {
-      callCounter++;
-      const requestRecord: Omit<LLMCallRecord, "response"> = {
-        callIndex: callCounter,
+      const requestRecord = {
+        callIndex: 1,
         timestamp: new Date().toISOString(),
         agentName: this.name,
         request: {
@@ -200,14 +148,13 @@ export class BaseAgent {
     }
 
     // === 更新 store（对话历史完整） ===
-    // SDK 内部已经处理了工具调用，但 store 需要完整历史用于后续对话
     for (const step of steps) {
       if (step.text || (step.toolCalls?.length > 0)) {
         s.add({ role: "assistant", content: step.text || "" });
       }
       for (const tc of step.toolCalls ?? []) {
         const toolResult = (step.toolResults ?? []).find(
-          (tr: any) => tr.toolCallId === tc.toolCallId,
+          (tr: TypedToolResult<ToolSet>) => tr.toolCallId === tc.toolCallId,
         );
         const toolResultPart: ToolResultPart = {
           type: "tool-result",

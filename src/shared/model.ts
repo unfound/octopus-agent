@@ -27,7 +27,7 @@ export function getModel(modelId?: string | LanguageModel): LanguageModel {
 
   const id = (typeof modelId === "string" ? modelId : undefined)
     || process.env.DEFAULT_MODEL
-    || "openrouter/stepfun/step-3.5-flash";
+    || "local/qwen/qwen3.5-9b";
 
   if (id.startsWith("openrouter/")) {
     const openai = createOpenAI({

@@ -15,18 +15,18 @@ import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-import { generateText, stepCountIs } from "ai";
+import { generateText, stepCountIs, type ToolSet, type StepResult } from "ai";
 import { getModel } from "../shared/model";
 import type { EvalCase, AgentResult } from "./scorers";
 import { runEval } from "./runner";
-import { formatReport, formatJsonReport } from "./report";
+import { formatReport } from "./report";
 
 // ========== Agent 封装 ==========
 
 /**
  * 创建一个简单的 Agent 用于评估
  */
-function createEvalAgent(tools: Record<string, any> = {}): (input: string) => Promise<AgentResult> {
+function createEvalAgent(tools: ToolSet = {}): (input: string) => Promise<AgentResult> {
   return async (input: string): Promise<AgentResult> => {
     const model = getModel();
     const toolCalls: string[] = [];
@@ -40,7 +40,7 @@ function createEvalAgent(tools: Record<string, any> = {}): (input: string) => Pr
       });
 
       // 收集工具调用
-      const steps = (result as any).steps ?? [];
+      const steps: Array<StepResult<ToolSet>> = (result as { steps?: Array<StepResult<ToolSet>> }).steps ?? [];
       for (const step of steps) {
         for (const tc of step.toolCalls ?? []) {
           toolCalls.push(tc.toolName);
@@ -113,7 +113,6 @@ async function demoWithJudge() {
 async function main() {
   const args = process.argv.slice(2);
   const useJudge = args.includes("--judge");
-  const outputJson = args.includes("--json");
 
   if (useJudge) {
     await demoWithJudge();

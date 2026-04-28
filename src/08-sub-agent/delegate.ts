@@ -10,7 +10,7 @@
 
 import { tool, type ToolSet } from "ai";
 import { z } from "zod";
-import { SubAgent, type SubAgentResult, type SubAgentConfig } from "./agent";
+import { SubAgent } from "./agent";
 import type { AgentHooks } from "../shared/hooks";
 
 /** 禁止子代理使用的工具名 */

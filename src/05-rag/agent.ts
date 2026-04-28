@@ -10,7 +10,7 @@
  * - 05: Embedding 检索外部文档（预先导入的）
  */
 
-import { generateText, tool, type ModelMessage, type ToolResultPart, type JSONValue } from "ai";
+import { generateText, tool, type ToolResultPart, type JSONValue } from "ai";
 import { z } from "zod";
 import { getModel } from "../shared/model";
 import { MessageStore } from "../shared/message-store";

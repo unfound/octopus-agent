@@ -11,7 +11,8 @@
 
 import { tool } from "ai";
 import { z } from "zod";
-import type { MessageBus, AgentMessage } from "./message-bus";
+import type { MessageBus } from "./message-bus";
+
 
 /** Handoff 结果 */
 export interface HandoffResult {

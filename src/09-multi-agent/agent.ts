@@ -12,7 +12,7 @@
 
 import { tool, type ToolSet } from "ai";
 import { z } from "zod";
-import { getModel } from "../shared/model";
+
 import { BaseAgent, type BaseAgentConfig } from "../shared/base-agent";
 import type { MessageBus, AgentMessage, HandlerResult } from "./message-bus";
 

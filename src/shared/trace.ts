@@ -212,9 +212,8 @@ function buildTraceLines(records: LLMCallRecord[]): TraceLine[] {
 /**
  * 渲染单行为字符串
  */
-function renderLine(line: TraceLine, colorMap: Map<string, number>, maxWidth: number): string {
+function renderLine(line: TraceLine, colorMap: Map<string, number>): string {
   const color = agentColor(line.agentName, colorMap);
-  const prefix = line.indent > 0 ? "  └ " : "";
   const agent = `${color}${line.agentName.padEnd(10)}${RESET}`;
 
   // 调用标识
@@ -400,7 +399,7 @@ function main() {
   // 调用链
   const traceLines = buildTraceLines(records);
   for (const tl of traceLines) {
-    lines.push(renderLine(tl, colorMap, 80));
+    lines.push(renderLine(tl, colorMap));
 
     // verbose: 展开 messages
     if (verbose && tl.messages) {
