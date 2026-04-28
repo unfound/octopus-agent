@@ -10,22 +10,55 @@
 
 ## 🛤️ 章节
 
-| # | 章节 | 描述 | 运行方式 | 状态 |
-|---|------|------|----------|------|
-| 01 | [basic-agent](./src/01-basic-agent/) | 单轮 / 持续对话 | `npx tsx src/01-basic-agent/index.ts` (单轮) / `chat.ts` (多轮) | ✅ |
-| 02 | [tool-system](./src/02-tool-system/) | 工具调用 + ReAct 循环 | `npx tsx src/02-tool-system/chat.ts` | ✅ |
-| 03 | [memory](./src/03-memory/) | 对话历史 + 窗口策略 | `npx tsx src/03-memory/chat.ts` | ✅ |
-| 04 | [long-term](./src/04-long-term/) | 长期记忆 + BM25 检索 | `npx tsx src/04-long-term/chat.ts` | ✅ |
-| 05 | [rag](./src/05-rag/) | 检索增强生成 — 文档切片 + embedding + 相似度检索 | `npx tsx src/05-rag/chat.ts` | ✅ |
-| 06 | [mcp](./src/06-mcp/) | MCP 协议 — 标准化工具/资源接入 | `npx tsx src/06-mcp/chat.ts` | ✅ |
-| 07 | [skill](./src/07-skill/) | 可复用技能 — 技能发现、加载、执行 | `npx tsx src/07-skill/chat.ts` | ✅ |
-| 08 | [sub-agent](./src/08-sub-agent/) | 子代理委派 — 隔离上下文 + 受限工具 + MoA | `npx tsx src/08-sub-agent/chat.ts subagent\|delegate\|moa` | ✅ |
-|| 09 | [multi-agent](./src/09-multi-agent/) | 对等协作 — MessageBus + Handoff + 广播 | `npx tsx src/09-multi-agent/chat.ts collab\|handoff` | ✅ |
-|| 10 | sandbox | 权限控制 — 工具白名单 + 沙箱执行 + 敏感信息过滤 | `npx tsx src/10-sandbox/chat.ts` | ✅ |
-|| 11 | evaluation | 评估框架 — 关键词校验 + LLM Judge + 回归测试 | `npx tsx src/11-evaluation/chat.ts` | ✅ |
-| 12 | [streaming](./src/12-streaming/) | 流式输出 — streamText + textStream + 工具流 | `npx tsx src/12-streaming/chat.ts text\\|full\\|tool\\|benchmark\\|interactive` | ✅ |
-| 13 | [structured-output](./src/13-structured-output/) | 结构化输出 — generateObject + Zod + streamObject | `npx tsx src/13-structured-output/chat.ts review\\|extract\\|classify\\|entities\\|stream` | ✅ |
-| 14 | [error-handling](./src/14-error-handling/) | 错误处理 — retry + fallback + graceful degradation | `npx tsx src/14-error-handling/chat.ts classify\\|retry\\|fallback\\|resilient\\|stats` | ✅ |
+| # | 章节 | 描述 | 状态 |
+|---|------|------|:----:|
+| 01 | [basic-agent](./src/01-basic-agent/) | 单轮 / 持续对话 — 最简 Agent | ✅ |
+| 02 | [tool-system](./src/02-tool-system/) | 工具调用 + ReAct 循环 | ✅ |
+| 03 | [memory](./src/03-memory/) | 对话历史 + 窗口策略 | ✅ |
+| 04 | [long-term](./src/04-long-term/) | 长期记忆 — JSONL + BM25 检索 | ✅ |
+| 05 | [rag](./src/05-rag/) | 检索增强生成 — 切片 + embedding + 向量检索 | ✅ |
+| 06 | [mcp](./src/06-mcp/) | MCP 协议 — 标准化工具/资源接入 | ✅ |
+| 07 | [skill](./src/07-skill/) | 可复用技能 — 发现、加载、执行 | ✅ |
+| 08 | [sub-agent](./src/08-sub-agent/) | 子代理委派 — 隔离上下文 + MoA | ✅ |
+| 09 | [multi-agent](./src/09-multi-agent/) | 对等协作 — MessageBus + Handoff | ✅ |
+| 10 | [sandbox](./src/10-sandbox/) | 安全沙箱 — 白名单 + 脱敏 + 确认 | ✅ |
+| 11 | [evaluation](./src/11-evaluation/) | 评估框架 — 关键词 + LLM Judge | ✅ |
+| 12 | [streaming](./src/12-streaming/) | 流式输出 — streamText + fullStream | ✅ |
+| 13 | [structured-output](./src/13-structured-output/) | 结构化输出 — generateObject + Zod | ✅ |
+| 14 | [error-handling](./src/14-error-handling/) | 容错 — retry + fallback + 降级 | ✅ |
+
+所有章节都可以用 `npx tsx src/<章节>/chat.ts` 运行，部分支持子命令：
+
+```bash
+# 08: 子代理模式
+npx tsx src/08-sub-agent/chat.ts subagent   # 基础 SubAgent
+npx tsx src/08-sub-agent/chat.ts delegate   # 父代理 + delegate
+npx tsx src/08-sub-agent/chat.ts moa        # Mixture-of-Agents
+
+# 09: 多 Agent 模式
+npx tsx src/09-multi-agent/chat.ts handoff   # Handoff 转交
+npx tsx src/09-multi-agent/chat.ts collab    # Researcher + Writer 协作
+
+# 12: 流式模式
+npx tsx src/12-streaming/chat.ts text        # 纯文本流
+npx tsx src/12-streaming/chat.ts full        # 完整事件流
+npx tsx src/12-streaming/chat.ts tool        # 工具调用流
+npx tsx src/12-streaming/chat.ts benchmark   # 延迟对比
+
+# 13: 结构化模式
+npx tsx src/13-structured-output/chat.ts review     # 代码审查
+npx tsx src/13-structured-output/chat.ts extract    # 信息提取
+npx tsx src/13-structured-output/chat.ts classify   # 意图分类
+npx tsx src/13-structured-output/chat.ts entities   # 实体提取
+npx tsx src/13-structured-output/chat.ts stream     # 流式审查
+
+# 14: 容错模式
+npx tsx src/14-error-handling/chat.ts classify    # 错误分类演示
+npx tsx src/14-error-handling/chat.ts retry       # 重试机制演示
+npx tsx src/14-error-handling/chat.ts fallback    # 模型降级演示
+npx tsx src/14-error-handling/chat.ts resilient   # 完整容错
+npx tsx src/14-error-handling/chat.ts stats       # 错误统计
+```
 
 ## 🏗️ 目录结构
 
@@ -87,29 +120,14 @@ cp .env.example .env
 # 第一章：单轮对话
 npx tsx src/01-basic-agent/index.ts
 
-# 第一章：多轮对话（交互式）
+# 交互模式（多轮对话）
 npx tsx src/01-basic-agent/chat.ts
-
-# 第二章：工具调用（交互式，支持文件读写和命令执行）
 npx tsx src/02-tool-system/chat.ts
-
-# 第三章：记忆系统（交互式，能记住上下文）
 npx tsx src/03-memory/chat.ts
-
-# 第四章：长期记忆（交互式，跨 session 持久化）
 npx tsx src/04-long-term/chat.ts
-
-# 第七章：可复用技能（交互式，自动发现和加载技能）
+npx tsx src/05-rag/chat.ts
+npx tsx src/06-mcp/chat.ts
 npx tsx src/07-skill/chat.ts
-
-# 第八章：子代理委派
-npx tsx src/08-sub-agent/chat.ts subagent   # 基础 SubAgent
-npx tsx src/08-sub-agent/chat.ts delegate   # 父代理 + delegate
-npx tsx src/08-sub-agent/chat.ts moa        # Mixture-of-Agents
-
-# 第九章：多 Agent 协作
-npx tsx src/09-multi-agent/chat.ts collab    # 研究 + 写作协作
-npx tsx src/09-multi-agent/chat.ts handoff   # Agent 间 Handoff 转交
 ```
 
 ### 测试
