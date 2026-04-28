@@ -5,7 +5,7 @@
  * 运行方式：npx vitest run tests/05-rag.test.ts
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect } from "vitest";
 import { chunkText } from "../src/05-rag/chunker";
 import { cosineSimilarity, embedText } from "../src/05-rag/embedder";
 import { VectorStore } from "../src/05-rag/vector-store";

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * 验证重构后的 SubAgent + delegate 逻辑正确性
  *
@@ -6,9 +7,9 @@
  */
 
 import type { LanguageModel, ToolCallPart, ToolResultPart } from "ai";
-import { SubAgent } from "./agent";
-import { createDelegateTool } from "./delegate";
-import type { AgentHooks, LLMCallRecord } from "../shared/hooks";
+import { SubAgent } from "../src/08-sub-agent/agent";
+import { createDelegateTool } from "../src/08-sub-agent/delegate";
+import type { AgentHooks, LLMCallRecord } from "../src/shared/hooks";
 
 // ====== Mock Model Factory ======
 
@@ -205,7 +206,7 @@ async function testDelegateIntegration() {
   console.log("\n📝 Test 6: delegate 工具集成（父代理 + 子代理 hooks）");
 
   // 父代理的 mock：调用一次 delegate，然后返回结果
-  const parentModel = createMockModel([
+  const _parentModel = createMockModel([
     {
       text: "I'll delegate this",
       toolCalls: [{

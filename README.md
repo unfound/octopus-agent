@@ -23,6 +23,9 @@
 || 09 | [multi-agent](./src/09-multi-agent/) | 对等协作 — MessageBus + Handoff + 广播 | `npx tsx src/09-multi-agent/chat.ts collab\|handoff` | ✅ |
 || 10 | sandbox | 权限控制 — 工具白名单 + 沙箱执行 + 敏感信息过滤 | `npx tsx src/10-sandbox/chat.ts` | ✅ |
 || 11 | evaluation | 评估框架 — 关键词校验 + LLM Judge + 回归测试 | `npx tsx src/11-evaluation/chat.ts` | ✅ |
+| 12 | [streaming](./src/12-streaming/) | 流式输出 — streamText + textStream + 工具流 | `npx tsx src/12-streaming/chat.ts text\\|full\\|tool\\|benchmark\\|interactive` | ✅ |
+| 13 | [structured-output](./src/13-structured-output/) | 结构化输出 — generateObject + Zod + streamObject | `npx tsx src/13-structured-output/chat.ts review\\|extract\\|classify\\|entities\\|stream` | ✅ |
+| 14 | [error-handling](./src/14-error-handling/) | 错误处理 — retry + fallback + graceful degradation | `npx tsx src/14-error-handling/chat.ts classify\\|retry\\|fallback\\|resilient\\|stats` | ✅ |
 
 ## 🏗️ 目录结构
 
@@ -32,7 +35,10 @@ octopus-agent/
 │   ├── shared/              # 共享模块
 │   │   ├── model.ts         # 模型配置（OpenRouter / 本地模型）
 │   │   ├── message-store.ts # 消息存储 + token 估算
-│   │   └── interactive.ts   # 交互式对话循环（readline）
+│   │   ├── interactive.ts   # 交互式对话循环（readline）
+│   │   ├── base-agent.ts    # 共享 Agent 基类（ReAct 循环 + hooks）
+│   │   ├── hooks.ts         # hooks 系统 + emitStepsHooks 共享函数
+│   │   └── trace.ts         # 调用链可视化分析工具
 │   ├── 01-basic-agent/      # 单轮 / 持续对话
 │   ├── 02-tool-system/      # 工具调用 + ReAct 循环
 │   ├── 03-memory/           # 记忆系统 + 上下文窗口
@@ -43,7 +49,10 @@ octopus-agent/
 │   ├── 08-sub-agent/        # 子代理委派 — 隔离上下文 + MoA
 │   ├── 09-multi-agent/      # 对等协作 — MessageBus + Handoff
 │   ├── 10-sandbox/          # 权限控制 — 工具白名单 + 沙箱执行 + 敏感信息过滤
-│   └── 11-evaluation/       # 评估框架 — 关键词校验 + LLM Judge + 回归测试
+│   ├── 11-evaluation/       # 评估框架 — 关键词校验 + LLM Judge + 回归测试
+│   ├── 12-streaming/        # 流式输出 — streamText + textStream + fullStream
+│   ├── 13-structured-output/ # 结构化输出 — generateObject + Zod Schema
+│   └── 14-error-handling/   # 错误处理 — retry + fallback + 容错
 ├── tests/                   # 测试（含各章节集成测试）
 ├── .env                     # API keys（不提交）
 └── package.json

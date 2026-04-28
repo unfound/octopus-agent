@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * 验证重构后的 PeerAgent 逻辑正确性
  *
@@ -6,9 +7,9 @@
  */
 
 import type { LanguageModel } from "ai";
-import { PeerAgent, createListAgentsTool } from "./agent";
-import { MessageBus } from "./message-bus";
-import type { AgentHooks, LLMCallRecord } from "../shared/hooks";
+import { PeerAgent } from "../src/09-multi-agent/agent";
+import { MessageBus } from "../src/09-multi-agent/message-bus";
+import type { AgentHooks, LLMCallRecord } from "../src/shared/hooks";
 
 // ====== Mock Model Factory ======
 
